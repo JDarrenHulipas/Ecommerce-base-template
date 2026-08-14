@@ -3,6 +3,25 @@
 Registro de todo lo que se sube al repositorio en cada `git push`.
 Cada entrada indica qué funcionalidad se añadió y cómo usarla.
 
+## [0.1.1] - 2026-08-14 — Tests de integración de la API
+
+### Tests de la API (commit `TBD`)
+Suite de integración en `backend/tests/api.test.js` usando el runner nativo de Node (`node:test`) y `fetch`, **sin dependencias nuevas**. Necesita PostgreSQL local con esquema + seed aplicados.
+
+**Cómo usarla:**
+```bash
+cd backend
+npm test            # 12 tests: health, productos, pedidos
+```
+
+Cobertura:
+- `GET /api/health`: tienda por defecto, cambio con `X-Tenant-Slug`, 404 si no existe.
+- `GET /api/productos`: solo disponibles, campos completos, **aislamiento entre tenants**.
+- `GET /api/productos/:slug`: 200 en detalle, 404 inexistente, 404 si es de otra tienda.
+- `GET /api/pedidos`: lista de la tienda activa.
+- `POST /api/pedidos`: cálculo de precios desde la BD (subtotal/envío/total), rechazo sin cliente/items, **rollback** con producto inexistente (verifica que no deja pedidos huérfanos).
+- Los pedidos de prueba se limpian solos al terminar.
+
 ## [0.1.0] - 2026-08-14 — Primer push (estructura + BD + API)
 
 ### Estructura del proyecto (commit `ceaf0aa`, `bcd57be`)
