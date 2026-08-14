@@ -20,14 +20,37 @@
 
 ```
 bakerycloud/
-├── backend/            # REST API Node.js/Express
-│   └── src/
-├── frontend/           # SPA/Next.js con carrito y theming por tienda
-│   └── src/
-├── db/                 # Esquema SQL, seeds y migraciones
-│   └── schema.sql
-├── docker/             # Docker Compose y config de contenedores
-├── .github/workflows/  # Pipelines de CI/CD
+├── backend/                    # REST API Node.js/Express
+│   ├── src/
+│   │   ├── config/             # env, conexión BD
+│   │   ├── middleware/         # resolución de tienda (tenant), errores
+│   │   ├── controllers/        # lógica de endpoints
+│   │   ├── routes/             # rutas: /api/productos, /api/pedidos...
+│   │   ├── models/             # acceso a datos SQL
+│   │   ├── services/           # lógica de negocio
+│   │   └── utils/              # helpers
+│   └── tests/                  # pruebas de la API
+├── frontend/                   # SPA/Next.js con carrito y theming
+│   ├── src/
+│   │   ├── components/         # UI reutilizable
+│   │   ├── pages/              # vistas (tienda, producto, carrito)
+│   │   ├── store/              # carrito (LocalStorage)
+│   │   ├── styles/             # temas por tienda (variables)
+│   │   └── utils/              # helpers de front
+│   └── public/                 # estáticos (logos, favicon)
+├── db/
+│   ├── schema.sql              # esquema multi-tenant + RLS
+│   ├── seed.sql                # datos de ejemplo
+│   └── migrations/             # cambios de esquema versionados
+├── docker/
+│   └── docker-compose.yml      # PostgreSQL (desarrollo local)
+├── infra/aws/                  # IaC (semanas 7-8)
+│   ├── ec2/                    # servidor de despliegue
+│   ├── rds/                    # base de datos gestionada
+│   └── s3/                     # almacenamiento de archivos
+├── docs/arquitectura/          # documentación técnica
+├── .github/workflows/          # CI/CD (semanas 7-8)
+├── .env.example
 └── README.md
 ```
 
@@ -41,6 +64,7 @@ bakerycloud/
 ## Estado actual
 
 - [x] Estructura del proyecto y repositorio Git
+- [x] Estructura completa de carpetas (backend, frontend, db, docker, infra, docs)
 - [ ] Prerrequisitos locales: **Docker Desktop** y **Node.js 20+** (pendientes de instalar)
 - [ ] Esquema SQL (borrador en `db/schema.sql`)
 
