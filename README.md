@@ -65,20 +65,22 @@ bakerycloud/
 
 - [x] Estructura del proyecto y repositorio Git
 - [x] Estructura completa de carpetas (backend, frontend, db, docker, infra, docs)
-- [ ] Prerrequisitos locales: **Docker Desktop** y **Node.js 20+** (pendientes de instalar)
-- [ ] Esquema SQL (borrador en `db/schema.sql`)
+- [x] PostgreSQL en Docker + esquema multi-tenant con RLS + seed con 2 tiendas
+- [x] Rol de API (`bakery_api`) con aislamiento de tenant verificado
+- [ ] REST API Node.js/Express (productos y pedidos)
+- [ ] Prerrequisitos locales: **Node.js 20+** instalado ✓, **Docker Desktop** instalado ✓
 
-## Arranque local (próximamente)
+## Arranque de la base de datos (local)
 
 ```bash
-# 1. Levantar la base de datos (requiere Docker Desktop)
+# 1. Levantar PostgreSQL
 docker compose -f docker/docker-compose.yml up -d
 
-# 2. Aplicar el esquema
-# (comando pendiente de definir en el paso de BD)
-
-# 3. Lanzar la API
-cd backend
-npm install
-npm run dev
+# 2. Aplicar esquema, rol y seed (en este orden)
+Get-Content db/schema.sql -Raw | docker exec -i bakerycloud-postgres psql -U bakery -d bakerycloud -v ON_ERROR_STOP=1
+Get-Content db/roles.sql   -Raw | docker exec -i bakerycloud-postgres psql -U bakery -d bakerycloud -v ON_ERROR_STOP=1
+Get-Content db/seed.sql    -Raw | docker exec -i bakerycloud-postgres psql -U bakery -d bakerycloud -v ON_ERROR_STOP=1
 ```
+
+Nota: la API se conectará con el rol `bakery_api` (NO dueño de las tablas).
+PostgreSQL bypassa RLS para el dueño, por eso existe un rol separado de la API.

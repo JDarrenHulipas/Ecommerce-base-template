@@ -145,5 +145,9 @@ BEGIN
     END LOOP;
 END $$;
 
--- El rol de la API no tiene privilegios por defecto (restringido)
+-- El rol de la API (bakery_api) NO es dueño de estas tablas, por lo
+-- que Row Level Security SÍ le aplica. Los privilegios de ese rol se
+-- conceden en roles.sql (no aquí, para que este script sea idempotente).
+
+-- Los roles por defecto no tienen privilegios (restringido)
 REVOKE ALL ON ALL TABLES IN SCHEMA public FROM public;
