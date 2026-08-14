@@ -113,9 +113,11 @@ CREATE INDEX IF NOT EXISTS idx_pedidos_created      ON pedidos (tienda_id, creat
 -- ============================================================
 
 -- Helpers para gestionar el tenant activo de la conexión
+CREATE SCHEMA IF NOT EXISTS app;
 CREATE OR REPLACE FUNCTION app.set_tenant(tienda INTEGER)
 RETURNS VOID AS $$
-    SELECT set_config('app.tienda_id', tienda::text, FALSE);
+    -- COALESCE: si se pasa NULL, se guarda '' (sesión sin tenant activo)
+    SELECT set_config('app.tienda_id', COALESCE(tienda::text, ''), FALSE);
 $$ LANGUAGE SQL;
 
 CREATE OR REPLACE FUNCTION app.current_tenant()
