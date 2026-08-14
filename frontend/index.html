@@ -112,6 +112,24 @@
     </div>
   </aside>
 
+  <!-- Modal de detalle de producto -->
+  <div class="modal-overlay" id="modal-overlay" hidden></div>
+  <div class="modal" id="producto-modal" role="dialog" aria-modal="true" aria-hidden="true">
+    <button class="modal-close" id="modal-close" aria-label="Cerrar">×</button>
+    <div class="modal-image" id="modal-image"></div>
+    <div class="modal-body">
+      <span class="modal-cat" id="modal-cat"></span>
+      <h2 class="modal-name" id="modal-name"></h2>
+      <p class="modal-desc" id="modal-desc"></p>
+      <h3 class="modal-ing-title">Ingredientes</h3>
+      <ul class="modal-ing" id="modal-ing"></ul>
+      <div class="modal-foot">
+        <span class="modal-price" id="modal-price"></span>
+        <button class="btn btn-primary" id="modal-add">Añadir al carrito</button>
+      </div>
+    </div>
+  </div>
+
   <script src="/src/store/cart.js"></script>
   <script src="/src/utils/api.js"></script>
   <script src="/src/app.js"></script>

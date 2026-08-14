@@ -3,6 +3,19 @@
 Registro de todo lo que se sube al repositorio en cada `git push`.
 Cada entrada indica qué funcionalidad se añadió y cómo usarla.
 
+## [0.2.0] - 2026-08-14 — Modal de detalle de producto con ingredientes
+
+### Modal de detalle (commit `TBD`)
+Al hacer clic en cualquier card del catálogo se abre un **modal grande** con la foto, descripción e **ingredientes** del producto, y un botón "Añadir al carrito" que agrega el producto y abre el carrito.
+
+- Nuevo campo `ingredientes` (TEXT) en `productos` (schema + migración `ALTER TABLE ... ADD COLUMN IF NOT EXISTS`).
+- Seed actualizado con ingredientes reales para los 14 productos de Kokoro Cakes.
+- API: `GET /api/productos` y `GET /api/productos/:slug` ahora incluyen `ingredientes`.
+- Frontend: modal accesible (`role="dialog"`, cierre con botón, clic en overlay o `Escape`), chips de ingredientes y responsive móvil.
+- El botón "Añadir" de las cards sigue añadiendo directo al carrito sin abrir el modal.
+
+**Cómo usarlo:** recargar `http://localhost:3000` y hacer clic en un producto.
+
 ## [0.1.1] - 2026-08-14 — Tests de integración de la API
 
 ### Tests de la API (commit `TBD`)

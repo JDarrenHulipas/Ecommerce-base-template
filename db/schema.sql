@@ -40,6 +40,7 @@ CREATE TABLE IF NOT EXISTS productos (
     slug        VARCHAR(120)  NOT NULL,
     nombre      VARCHAR(150)  NOT NULL,
     descripcion TEXT,
+    ingredientes TEXT,                                   -- lista de ingredientes (separada por comas)
     precio      NUMERIC(10,2) NOT NULL CHECK (precio >= 0),
     imagen_s3   VARCHAR(255),                              -- ruta en bucket: /tienda-id/productos/xxx.jpg
     stock       INT           NOT NULL DEFAULT 0 CHECK (stock >= 0),

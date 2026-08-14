@@ -10,9 +10,19 @@ const App = (() => {
   const checkoutForm = $('#checkout-form');
   const btnCheckout = $('#btn-checkout');
   const drawerMsg = $('#drawer-msg');
+  const modal = $('#producto-modal');
+  const modalOverlay = $('#modal-overlay');
+  const modalImg = $('#modal-image');
+  const modalCat = $('#modal-cat');
+  const modalName = $('#modal-name');
+  const modalDesc = $('#modal-desc');
+  const modalIng = $('#modal-ing');
+  const modalPrice = $('#modal-price');
+  const modalAdd = $('#modal-add');
 
   let productos = [];
   let categoriaActiva = 'todas';
+  let productoActivo = null;
 
   const formatEUR = (n) =>
     n.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' });
@@ -109,11 +119,14 @@ const App = (() => {
 
       card.prepend(imgSlot);
 
-      card.querySelector('.btn-add').addEventListener('click', () => {
+      card.querySelector('.btn-add').addEventListener('click', (e) => {
+        e.stopPropagation();
         CartStore.add(p);
         actualizarContador();
         abrirDrawer();
       });
+
+      card.addEventListener('click', () => abrirModal(p));
 
       grid.appendChild(card);
     }
@@ -196,6 +209,49 @@ const App = (() => {
     drawer.setAttribute('aria-hidden', 'true');
   }
 
+  function renderIngredientes(lista) {
+    if (!lista) return;
+    const items = lista.split(',').map((s) => s.trim()).filter(Boolean);
+    modalIng.innerHTML = items.map((i) => `<li>${i}</li>`).join('');
+  }
+
+  async function abrirModal(p) {
+    productoActivo = p;
+
+    modalCat.textContent = p.categoria || 'Dulce';
+    modalName.textContent = p.nombre;
+    modalDesc.textContent = p.descripcion || '';
+    modalPrice.textContent = formatEUR(p.precio);
+    renderIngredientes(p.ingredientes);
+
+    modalImg.innerHTML = '';
+    const img = await getImagen(p);
+    if (img.url) {
+      const el = document.createElement('img');
+      el.src = img.url;
+      el.alt = p.nombre;
+      modalImg.appendChild(el);
+    } else {
+      modalImg.style.cssText = img.style;
+    }
+
+    modalAdd.disabled = p.stock <= 0;
+    modalAdd.textContent = p.stock <= 0 ? 'Agotado' : 'Añadir al carrito';
+
+    modal.classList.add('open');
+    modalOverlay.classList.add('open');
+    modalOverlay.hidden = false;
+    modal.setAttribute('aria-hidden', 'false');
+  }
+
+  function cerrarModal() {
+    modal.classList.remove('open');
+    modalOverlay.classList.remove('open');
+    modalOverlay.hidden = true;
+    modal.setAttribute('aria-hidden', 'true');
+    productoActivo = null;
+  }
+
   async function init() {
     actualizarContador();
 
@@ -211,6 +267,22 @@ const App = (() => {
     $('#cart-btn').addEventListener('click', abrirDrawer);
     $('#drawer-close').addEventListener('click', cerrarDrawer);
     overlay.addEventListener('click', cerrarDrawer);
+
+    $('#modal-close').addEventListener('click', cerrarModal);
+    modalOverlay.addEventListener('click', cerrarModal);
+    modalAdd.addEventListener('click', () => {
+      if (!productoActivo) return;
+      CartStore.add(productoActivo);
+      actualizarContador();
+      cerrarModal();
+      abrirDrawer();
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        cerrarModal();
+        cerrarDrawer();
+      }
+    });
 
     btnCheckout.addEventListener('click', () => {
       checkoutForm.hidden = !checkoutForm.hidden;

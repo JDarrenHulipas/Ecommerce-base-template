@@ -6,7 +6,7 @@ const router = Router();
 router.get('/', async (req, res, next) => {
   try {
     const { rows } = await req.db.query(
-      `SELECT p.id, p.slug, p.nombre, p.descripcion, p.precio, p.imagen_s3, p.stock, p.disponible,
+      `SELECT p.id, p.slug, p.nombre, p.descripcion, p.ingredientes, p.precio, p.imagen_s3, p.stock, p.disponible,
               c.nombre AS categoria
          FROM productos p
          LEFT JOIN categorias c ON c.tienda_id = p.tienda_id AND c.id = p.categoria_id
@@ -23,7 +23,7 @@ router.get('/', async (req, res, next) => {
 router.get('/:slug', async (req, res, next) => {
   try {
     const { rows } = await req.db.query(
-      `SELECT p.id, p.slug, p.nombre, p.descripcion, p.precio, p.imagen_s3, p.stock, p.disponible,
+      `SELECT p.id, p.slug, p.nombre, p.descripcion, p.ingredientes, p.precio, p.imagen_s3, p.stock, p.disponible,
               c.nombre AS categoria
          FROM productos p
          LEFT JOIN categorias c ON c.tienda_id = p.tienda_id AND c.id = p.categoria_id

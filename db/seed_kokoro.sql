@@ -32,56 +32,70 @@ INSERT INTO categorias (tienda_id, nombre, posicion) VALUES
 -- ------------------------------------------------------------
 -- Productos (precios publicados en el perfil)
 -- ------------------------------------------------------------
-INSERT INTO productos (tienda_id, categoria_id, slug, nombre, descripcion, precio, stock, disponible) VALUES
+INSERT INTO productos (tienda_id, categoria_id, slug, nombre, descripcion, ingredientes, precio, stock, disponible) VALUES
 -- Bento Cakes 4" — 14 € (8M) / 12 € (Navidad)
 (1, (SELECT id FROM categorias WHERE tienda_id = 1 AND nombre = 'Bento Cakes'),
  'bento-chocograve', 'Bento Cake Chocograve',
- 'Bento cake de 10 cm: bizcocho de chocolate súper húmedo, relleno de Nutella y pepitas de chocolate.', 14.00, 6, TRUE),
+ 'Bento cake de 10 cm: bizcocho de chocolate súper húmedo, relleno de Nutella y pepitas de chocolate.',
+ 'Bizcocho de chocolate, Nutella, pepitas de chocolate, mantequilla, huevos, harina de trigo, azúcar.', 14.00, 6, TRUE),
 (1, (SELECT id FROM categorias WHERE tienda_id = 1 AND nombre = 'Bento Cakes'),
  'bento-milky-heaven', 'Bento Cake Milky Heaven',
- 'Bento cake de 10 cm: bizcocho de vainilla bañado en tres leches, relleno de dulce de leche.', 14.00, 6, TRUE),
+ 'Bento cake de 10 cm: bizcocho de vainilla bañado en tres leches, relleno de dulce de leche.',
+ 'Bizcocho de vainilla, tres leches, dulce de leche, nata, mantequilla, huevos, harina de trigo, azúcar.', 14.00, 6, TRUE),
 (1, (SELECT id FROM categorias WHERE tienda_id = 1 AND nombre = 'Bento Cakes'),
  'bento-sweet-vanilla', 'Bento Cake Sweet Vanilla',
- 'Bento cake de 10 cm: bizcocho de vainilla relleno de crema de queso y buttercream de merengue suizo.', 14.00, 6, TRUE),
+ 'Bento cake de 10 cm: bizcocho de vainilla relleno de crema de queso y buttercream de merengue suizo.',
+ 'Bizcocho de vainilla, crema de queso, mantequilla, claras de huevo, azúcar, harina de trigo.', 14.00, 6, TRUE),
 (1, (SELECT id FROM categorias WHERE tienda_id = 1 AND nombre = 'Bento Cakes'),
  'bento-lemon-berry', 'Bento Cake Lemon Berry',
- 'Bento cake de 10 cm: bizcocho de vainilla esponjoso con crema de limón y frosting de arándanos.', 14.00, 6, TRUE),
+ 'Bento cake de 10 cm: bizcocho de vainilla esponjoso con crema de limón y frosting de arándanos.',
+ 'Bizcocho de vainilla, crema de limón, arándanos, nata, mantequilla, huevos, harina de trigo, azúcar.', 14.00, 6, TRUE),
 (1, (SELECT id FROM categorias WHERE tienda_id = 1 AND nombre = 'Bento Cakes'),
  'bento-ube-dream', 'Bento Cake Ube Dream',
- 'Bento cake de 10 cm: bizcocho de ube (ñame morado) relleno de chocolate blanco y frosting de ube.', 14.00, 6, TRUE),
+ 'Bento cake de 10 cm: bizcocho de ube (ñame morado) relleno de chocolate blanco y frosting de ube.',
+ 'Bizcocho de ube (ñame morado), chocolate blanco, mantequilla, huevos, harina de trigo, azúcar.', 14.00, 6, TRUE),
 
 -- Kokoro Tins — mini cakes horneados (recogida en fin de semana)
 (1, (SELECT id FROM categorias WHERE tienda_id = 1 AND nombre = 'Kokoro Tins'),
  'tin-cookies-cream', 'Kokoro Tin Cookies & Cream',
- 'Bizcocho de chocolate, buttercream de merengue suizo de Oreo y Oreo triturada.', 7.50, 10, TRUE),
+ 'Bizcocho de chocolate, buttercream de merengue suizo de Oreo y Oreo triturada.',
+ 'Bizcocho de chocolate, galletas Oreo, mantequilla, claras de huevo, azúcar, harina de trigo.', 7.50, 10, TRUE),
 (1, (SELECT id FROM categorias WHERE tienda_id = 1 AND nombre = 'Kokoro Tins'),
  'tin-lotus-dream', 'Kokoro Tin Lotus Dream',
- 'Bizcocho de vainilla con galleta Lotus, buttercream Lotus, crema y crumble de galleta.', 7.50, 10, TRUE),
+ 'Bizcocho de vainilla con galleta Lotus, buttercream Lotus, crema y crumble de galleta.',
+ 'Bizcocho de vainilla, galleta Lotus, buttercream Lotus, mantequilla, huevos, harina de trigo, azúcar.', 7.50, 10, TRUE),
 (1, (SELECT id FROM categorias WHERE tienda_id = 1 AND nombre = 'Kokoro Tins'),
  'tin-salted-caramel', 'Kokoro Tin Salted Caramel Bliss',
- 'Bizcocho de chocolate, buttercream salted caramel y drizzle de caramelo salado casero.', 7.50, 10, TRUE),
+ 'Bizcocho de chocolate, buttercream salted caramel y drizzle de caramelo salado casero.',
+ 'Bizcocho de chocolate, caramelo salado, mantequilla, claras de huevo, sal marina, azúcar, harina de trigo.', 7.50, 10, TRUE),
 
 -- Mini Cakes — 4 €
 (1, (SELECT id FROM categorias WHERE tienda_id = 1 AND nombre = 'Mini Cakes'),
  'mini-cookies-cream', 'Mini Cake Cookies & Cream',
- 'Mini cake de bizcocho de chocolate con crema de Oreo.', 4.00, 20, TRUE),
+ 'Mini cake de bizcocho de chocolate con crema de Oreo.',
+ 'Bizcocho de chocolate, crema de Oreo, mantequilla, huevos, harina de trigo, azúcar.', 4.00, 20, TRUE),
 (1, (SELECT id FROM categorias WHERE tienda_id = 1 AND nombre = 'Mini Cakes'),
  'mini-milky-heaven', 'Mini Cake Milky Heaven',
- 'Mini cake de tres leches con una fina capa de dulce de leche y toque de canela.', 4.00, 20, TRUE),
+ 'Mini cake de tres leches con una fina capa de dulce de leche y toque de canela.',
+ 'Bizcocho de vainilla, tres leches, dulce de leche, canela, mantequilla, huevos, harina de trigo, azúcar.', 4.00, 20, TRUE),
 
 -- Tartas personalizadas (estilo vintage / coquette)
 (1, (SELECT id FROM categorias WHERE tienda_id = 1 AND nombre = 'Tartas personalizadas'),
  'tarta-chocolate-dulce-leche', 'Tarta de chocolate y dulce de leche',
- 'Tarta mediana de chocolate rellena de dulce de leche y fresas frescas. Decoración clásica vintage.', 48.00, 2, TRUE),
+ 'Tarta mediana de chocolate rellena de dulce de leche y fresas frescas. Decoración clásica vintage.',
+ 'Bizcocho de chocolate, dulce de leche, fresas frescas, nata, mantequilla, huevos, harina de trigo, azúcar.', 48.00, 2, TRUE),
 (1, (SELECT id FROM categorias WHERE tienda_id = 1 AND nombre = 'Tartas personalizadas'),
  'tarta-vainilla-lotus', 'Tarta de vainilla y Lotus',
- 'Tarta alta de vainilla con relleno de Lotus, decoración vintage, lettering y perlas.', 45.00, 2, TRUE),
+ 'Tarta alta de vainilla con relleno de Lotus, decoración vintage, lettering y perlas.',
+ 'Bizcocho de vainilla, galleta Lotus, buttercream Lotus, mantequilla, huevos, harina de trigo, azúcar.', 45.00, 2, TRUE),
 (1, (SELECT id FROM categorias WHERE tienda_id = 1 AND nombre = 'Tartas personalizadas'),
  'tarta-corazon-vintage', 'Tarta corazón vintage',
- 'Tarta mediana alta en forma de corazón de vainilla con dulce de leche y crumble de Oreo. Decoración full vintage.', 52.00, 2, TRUE),
+ 'Tarta mediana alta en forma de corazón de vainilla con dulce de leche y crumble de Oreo. Decoración full vintage.',
+ 'Bizcocho de vainilla, dulce de leche, galletas Oreo, mantequilla, huevos, harina de trigo, azúcar.', 52.00, 2, TRUE),
 (1, (SELECT id FROM categorias WHERE tienda_id = 1 AND nombre = 'Tartas personalizadas'),
  'tarta-encargo', 'Tarta personalizada a medida',
- 'Cuéntanos tu idea y la hacemos realidad. Diseños únicos estilo vintage y coquette, decorados con buttercream de merengue suizo. Encargos con 48h de antelación.', 60.00, 3, TRUE);
+ 'Cuéntanos tu idea y la hacemos realidad. Diseños únicos estilo vintage y coquette, decorados con buttercream de merengue suizo. Encargos con 48h de antelación.',
+ 'Según tu encargo: bizcocho a elegir (chocolate o vainilla), buttercream de merengue suizo y decoración a medida.', 60.00, 3, TRUE);
 
 -- Los productos que no tienen foto publicada en el perfil se dejan
 -- en la BD pero marcados como no disponibles (no se muestran en la web).
