@@ -83,6 +83,12 @@ INSERT INTO productos (tienda_id, categoria_id, slug, nombre, descripcion, preci
  'tarta-encargo', 'Tarta personalizada a medida',
  'Cuéntanos tu idea y la hacemos realidad. Diseños únicos estilo vintage y coquette, decorados con buttercream de merengue suizo. Encargos con 48h de antelación.', 60.00, 3, TRUE);
 
+-- Los productos que no tienen foto publicada en el perfil se dejan
+-- en la BD pero marcados como no disponibles (no se muestran en la web).
+UPDATE productos SET disponible = FALSE WHERE tienda_id = 1 AND slug IN
+('bento-milky-heaven', 'bento-lemon-berry', 'tin-lotus-dream',
+ 'mini-milky-heaven', 'tarta-vainilla-lotus', 'tarta-encargo');
+
 -- Restablece el tenant (sesión limpia)
 SELECT app.set_tenant(NULL);
 

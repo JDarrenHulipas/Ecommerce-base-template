@@ -240,6 +240,7 @@ body {
 }
 .cat-chip:hover { border-color: var(--rosa); color: var(--rosa); }
 .cat-chip.active { background: var(--rosa); border-color: var(--rosa); color: var(--blanco); }
+.cat-chip:active { transform: scale(0.93); }
 
 /* ---------- Grid de productos ---------- */
 .grid {
@@ -258,6 +259,15 @@ body {
   transition: transform 0.2s;
 }
 .card:hover { transform: translateY(-6px); }
+
+/* Animación de entrada escalonada al filtrar categorías */
+@keyframes cardIn {
+  from { opacity: 0; transform: translateY(18px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.card-in {
+  animation: cardIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
 
 .card-image {
   height: 180px;

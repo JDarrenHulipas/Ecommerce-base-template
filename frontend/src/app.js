@@ -72,9 +72,11 @@ const App = (() => {
       return;
     }
 
-    for (const p of filtrados) {
+    for (let i = 0; i < filtrados.length; i++) {
+      const p = filtrados[i];
       const card = document.createElement('article');
-      card.className = 'card' + (p.disponible === false ? ' card-soldout' : '');
+      card.className = 'card card-in' + (p.disponible === false ? ' card-soldout' : '');
+      card.style.animationDelay = `${i * 0.06}s`;
       card.innerHTML = `
         <div class="card-body">
           <span class="card-cat">${p.categoria || 'Dulce'}</span>
