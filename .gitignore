@@ -1,0 +1,27 @@
+# Dependencias
+node_modules/
+dist/
+build/
+coverage/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Entornos y secretos (¡nunca subir!)
+.env
+.env.local
+.env.*.local
+.env.production
+
+# Datos locales de Docker (PostgreSQL)
+docker/postgres-data/
+
+# IDE / SO
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Figma / diseño
+*.fig
