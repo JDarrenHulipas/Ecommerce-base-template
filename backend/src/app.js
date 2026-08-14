@@ -1,4 +1,5 @@
 const express = require('express');
+const path = require('path');
 const cors = require('cors');
 const resolveTenant = require('./middleware/tenant');
 
@@ -6,6 +7,16 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
+
+// Frontend estático (plantilla visible) en la raíz
+app.use(
+  express.static(path.join(__dirname, '..', '..', 'frontend'))
+);
+
+// Contenido público (imágenes de la tienda) servido desde /img, /favicon, etc.
+app.use(
+  express.static(path.join(__dirname, '..', '..', 'frontend', 'public'))
+);
 
 // El middleware de tenant se ejecuta para todas las rutas de la API
 app.use('/api', resolveTenant);

@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kokoro Cakes — Pasteles personalizados en Barcelona</title>
+  <link rel="icon" type="image/jpeg" href="/img/perfil.jpg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Cormorant+Garamond:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/src/styles/main.css">
+</head>
+<body>
+
+  <!-- Barra de anuncios -->
+  <div class="announcement-bar" id="announcement-bar">
+    <p>🍰 Encargos con 48h de antelación · Bento cakes, mini cakes y tartas personalizadas</p>
+  </div>
+
+  <!-- Header -->
+  <header class="header">
+    <nav class="nav">
+      <a href="#productos" class="nav-link">Productos</a>
+      <a href="#nosotros" class="nav-link">Nosotros</a>
+      <a href="/" class="logo" id="shop-logo">
+        <img class="logo-img" src="/img/perfil.jpg" alt="Kokoro Cakes">
+        <span>Kokoro<br>Cakes</span>
+      </a>
+      <a href="#contacto" class="nav-link">Contacto</a>
+      <button class="cart-btn" id="cart-btn" aria-label="Abrir carrito">
+        <span class="cart-count" id="cart-count">0</span>
+        Carrito
+      </button>
+    </nav>
+  </header>
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="hero-text">
+      <p class="hero-eyebrow">Pastelería personalizada · Barcelona</p>
+      <h1>Baking hearts<br>to fill <em>yours</em></h1>
+      <p class="hero-sub">Bento cakes de 10 cm, mini cakes horneados con amor y tartas vintage decoradas con buttercream de merengue suizo.</p>
+      <a href="#productos" class="btn btn-primary">Ver nuestros dulces</a>
+    </div>
+    <div class="hero-image" role="img" aria-label="Bento cakes de Kokoro Cakes"></div>
+  </section>
+
+  <!-- Productos -->
+  <section class="section" id="productos">
+    <div class="section-head">
+      <p class="section-eyebrow">Nuestra selección</p>
+      <h2>Productos</h2>
+    </div>
+    <div class="categorias" id="categorias"></div>
+    <div class="grid" id="grid-productos"></div>
+  </section>
+
+  <!-- Nosotros -->
+  <section class="section section-dark" id="nosotros">
+    <div class="nosotros">
+      <div class="nosotros-text">
+        <p class="section-eyebrow">Sobre nosotros</p>
+        <h2>Un obrador con corazón</h2>
+        <p>Cada pastel se hornea por encargo con mucho cariño. Bizcochos súper húmedos, buttercream de merengue suizo y diseños únicos estilo vintage y coquette.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Contacto -->
+  <section class="section" id="contacto">
+    <div class="section-head">
+      <p class="section-eyebrow">Encargos y pedidos</p>
+      <h2>Contacto</h2>
+    </div>
+    <p class="contact-text">¿Quieres un pastel para una ocasión especial? Escríbenos y lo preparamos.</p>
+    <form class="contact-form" id="contact-form">
+      <input type="text" placeholder="Tu nombre" required>
+      <input type="email" placeholder="Tu email" required>
+      <textarea placeholder="Cuéntanos qué pastel necesitas... (sabor, diseño, fecha)" rows="3" required></textarea>
+      <button type="submit" class="btn btn-primary">Enviar consulta</button>
+    </form>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <p>Kokoro Cakes · Barcelona · Encargos por Instagram @kokorocakess</p>
+    <p>Hecho con BakeryCloud — plantilla multi-tenant de marca blanca</p>
+  </footer>
+
+  <!-- Drawer del carrito -->
+  <div class="drawer-overlay" id="drawer-overlay"></div>
+  <aside class="drawer" id="drawer" aria-hidden="true">
+    <div class="drawer-head">
+      <h3>Tu carrito</h3>
+      <button class="drawer-close" id="drawer-close" aria-label="Cerrar carrito">&times;</button>
+    </div>
+    <div class="drawer-items" id="drawer-items">
+      <p class="drawer-empty">Tu carrito está vacío</p>
+    </div>
+    <div class="drawer-foot">
+      <div class="drawer-total">
+        <span>Total</span>
+        <span id="drawer-total">0,00 €</span>
+      </div>
+      <button class="btn btn-primary btn-full" id="btn-checkout">Finalizar pedido</button>
+      <form class="checkout-form" id="checkout-form" hidden>
+        <input type="text" id="checkout-nombre" placeholder="Tu nombre" required>
+        <input type="email" id="checkout-email" placeholder="Tu email" required>
+        <button type="submit" class="btn btn-primary btn-full">Confirmar pedido</button>
+      </form>
+      <p class="drawer-msg" id="drawer-msg"></p>
+    </div>
+  </aside>
+
+  <script src="/store/cart.js"></script>
+  <script src="/utils/api.js"></script>
+  <script src="/app.js"></script>
+</body>
+</html>
