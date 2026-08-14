@@ -67,7 +67,11 @@ bakerycloud/
 - [x] Estructura completa de carpetas (backend, frontend, db, docker, infra, docs)
 - [x] PostgreSQL en Docker + esquema multi-tenant con RLS + seed con 2 tiendas
 - [x] Rol de API (`bakery_api`) con aislamiento de tenant verificado
-- [ ] REST API Node.js/Express (productos y pedidos)
+- [x] REST API Node.js/Express: productos, pedidos y resolución de tenant
+- [ ] Frontend React/Next.js con carrito y theming
+- [ ] Docker Compose completo (API + frontend + BD)
+- [ ] AWS `eu-south-2` + CI/CD (semanas 7-8)
+- [ ] Cloudflare + lanzamiento (semanas 9-10)
 - [ ] Prerrequisitos locales: **Node.js 20+** instalado ✓, **Docker Desktop** instalado ✓
 
 ## Arranque de la base de datos (local)
@@ -84,3 +88,22 @@ Get-Content db/seed.sql    -Raw | docker exec -i bakerycloud-postgres psql -U ba
 
 Nota: la API se conectará con el rol `bakery_api` (NO dueño de las tablas).
 PostgreSQL bypassa RLS para el dueño, por eso existe un rol separado de la API.
+
+## REST API (Node.js/Express)
+
+```bash
+cd backend
+cp .env.example .env   # ajustar credenciales si es necesario
+npm install
+npm run dev            # http://localhost:3000
+```
+
+Endpoints (el tenant se resuelve por cabecera `X-Tenant-Slug` en desarrollo):
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| GET | `/api/health` | Estado y tienda activa |
+| GET | `/api/productos` | Productos de la tienda activa |
+| GET | `/api/productos/:slug` | Detalle de un producto |
+| GET | `/api/pedidos` | Pedidos de la tienda activa |
+| POST | `/api/pedidos` | Crea un pedido `{ cliente: {nombre,email}, items: [{producto_id, cantidad}] }` |
