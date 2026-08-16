@@ -5,7 +5,7 @@ Cada entrada indica qué funcionalidad se añadió y cómo usarla.
 
 ## [0.3.2] - 2026-08-16 — Bugfixes: borrar tarta del carrito + validación de opciones
 
-### Corregido (commit `TBD`)
+### Corregido (commit `f1074b3`)
 - **No se podía borrar/restar una tarta personalizada del carrito.** La clave de la línea en el carrito contenía el JSON de la configuración (`48::{"tamano":"42",...}`), cuyas comillas dobles rompían el atributo `data-id` del drawer y el borrado no encontraba la línea. Ahora la clave se codifica con `encodeURIComponent` en el HTML y se decodifica al leerla, de modo que "−", "+" y "✕" funcionan para cualquier configuración.
 - **Se podía llegar a "Añadir al carrito" saltando validación.** Reforzada la defensa en profundidad del configurador: además del botón deshabilitado, el handler de "Siguiente" ahora comprueba también que el paso actual es válido antes de avanzar. El backend ya rechazaba (400) configuraciones incompletas.
 
