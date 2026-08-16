@@ -438,6 +438,11 @@
   cursor: wait;
 }
 
+.estado-select.estado-pendiente {
+  background-color: #f9e88a;
+  color: #7a5c00;
+}
+
 .estado-select.estado-cancelado {
   background-color: #f9dddd;
   color: #b3261e;
