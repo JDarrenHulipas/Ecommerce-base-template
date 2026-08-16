@@ -3,6 +3,13 @@
 Registro de todo lo que se sube al repositorio en cada `git push`.
 Cada entrada indica qué funcionalidad se añadió y cómo usarla.
 
+## [0.3.4] - 2026-08-16 — Botón "Siguiente" deshabilitado con color apagado
+
+### Corregido (commit `TBD`)
+- En el configurador de tartas, "Siguiente" (y "Añadir al carrito") cuando no hay nada seleccionado en el paso actual ahora se ven **visualmente deshabilitados**: fondo beige apagado, opacidad reducida y cursor `not-allowed`, en lugar de tener el color activo normal. Regla global `.btn:disabled`.
+
+**Cómo usarlo:** recargar con **Ctrl+F5**, abrir "Construye tu tarta": "Siguiente" aparece gris/beige hasta elegir una opción.
+
 ## [0.3.3] - 2026-08-16 — Popups de aviso (toasts) para todos los errores
 
 ### Añadido (commit `57b838f`)
