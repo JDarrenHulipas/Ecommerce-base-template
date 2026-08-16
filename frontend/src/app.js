@@ -57,6 +57,33 @@ const App = (() => {
   const formatEUR = (n) =>
     n.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' });
 
+  const toastContainer = $('#toast-container');
+
+  function notify(mensaje, tipo = 'error', duracion = 5000) {
+    const toast = document.createElement('div');
+    toast.className = `toast ${tipo}`;
+    const icono = tipo === 'success' ? '✓' : tipo === 'info' ? 'ℹ' : '✕';
+    toast.innerHTML = `
+      <span class="toast-icon" aria-hidden="true">${icono}</span>
+      <div class="toast-body"></div>
+      <button class="toast-close" aria-label="Cerrar aviso">&times;</button>
+    `;
+    toast.querySelector('.toast-body').textContent = mensaje;
+    toast.querySelector('.toast-close').addEventListener('click', () => {
+      toast.classList.add('leaving');
+      setTimeout(() => toast.remove(), 250);
+    });
+    toastContainer.appendChild(toast);
+    if (duracion > 0) {
+      setTimeout(() => {
+        if (toast.isConnected) {
+          toast.classList.add('leaving');
+          setTimeout(() => toast.remove(), 250);
+        }
+      }, duracion);
+    }
+  }
+
   const slugToHue = (slug) => {
     let h = 0;
     for (const ch of slug) h = (h * 31 + ch.charCodeAt(0)) % 360;
@@ -410,7 +437,12 @@ const App = (() => {
 
   async function abrirConfig() {
     if (!catalogo) {
-      catalogo = await Api.getOpciones();
+      try {
+        catalogo = await Api.getOpciones();
+      } catch (err) {
+        notify('No se pudo cargar el configurador de tartas. Inténtalo de nuevo más tarde.');
+        return;
+      }
     }
     configSel = {};
     configPaso = 0;
@@ -429,7 +461,10 @@ const App = (() => {
   }
 
   function añadirTartaAlCarrito() {
-    if (!['tamano', 'altura', 'bizcocho', 'relleno', 'decoracion'].every((p) => configSel[p])) return;
+    if (!['tamano', 'altura', 'bizcocho', 'relleno', 'decoracion'].every((p) => configSel[p])) {
+      notify('Faltan opciones por elegir. Completa todos los pasos antes de añadir la tarta.');
+      return;
+    }
     const total = calcularPrecioConfig();
     const partes = [];
     for (const paso of PASOS) {
@@ -472,6 +507,7 @@ const App = (() => {
       renderGrid();
     } catch (err) {
       grid.innerHTML = `<p style="grid-column:1/-1;text-align:center;color:var(--vino)">No se pudieron cargar los productos: ${err.message}</p>`;
+      notify('No se pudieron cargar los productos. Inténtalo de nuevo más tarde.');
     }
 
     $('#cart-btn').addEventListener('click', abrirDrawer);
@@ -481,7 +517,10 @@ const App = (() => {
     $('#modal-close').addEventListener('click', cerrarModal);
     modalOverlay.addEventListener('click', cerrarModal);
     modalAdd.addEventListener('click', () => {
-      if (!productoActivo) return;
+      if (!productoActivo) {
+        notify('No hay ningún producto seleccionado.');
+        return;
+      }
       CartStore.add(productoActivo);
       actualizarContador();
       cerrarModal();
@@ -519,7 +558,10 @@ const App = (() => {
         ...(i.configuracion ? { configuracion: i.configuracion } : {}),
       }));
 
-      if (items.length === 0) return;
+      if (items.length === 0) {
+        notify('Tu carrito está vacío. Añade algún producto antes de finalizar el pedido.');
+        return;
+      }
 
       try {
         const res = await Api.crearPedido({ cliente: { nombre, email }, items });
@@ -530,18 +572,27 @@ const App = (() => {
         checkoutForm.reset();
         renderDrawer();
         actualizarContador();
+        notify(`¡Pedido confirmado! (ref. #${res.pedido_id})`, 'success');
       } catch (err) {
         drawerMsg.textContent = err.message;
         drawerMsg.classList.add('error');
+        notify(err.message || 'No se pudo realizar el pedido. Inténtalo de nuevo.');
       }
     });
 
     $('#contact-form').addEventListener('submit', (e) => {
       e.preventDefault();
-      alert('Gracias por tu consulta. Te responderemos muy pronto.');
+      notify('Gracias por tu consulta. Te responderemos muy pronto.', 'success');
       e.target.reset();
     });
   }
+
+  window.addEventListener('error', (e) => {
+    if (e && e.message) notify(e.message);
+  });
+  window.addEventListener('unhandledrejection', (e) => {
+    if (e && e.reason) notify(e.reason.message || String(e.reason));
+  });
 
   document.addEventListener('DOMContentLoaded', init);
 })();

@@ -3,6 +3,21 @@
 Registro de todo lo que se sube al repositorio en cada `git push`.
 Cada entrada indica qué funcionalidad se añadió y cómo usarla.
 
+## [0.3.3] - 2026-08-16 — Popups de aviso (toasts) para todos los errores
+
+### Añadido (commit `TBD`)
+- **Sistema de toasts**: contenedor fijo arriba a la derecha, toasts de error (✕, borde frambuesa), éxito (✓) e información (ℹ), con cierre manual, auto-cierre a los 5 s y animación de entrada/salida. Responsive en móvil (ocupan todo el ancho).
+- **Capturadores globales**: `window.onerror` y `unhandledrejection` muestran un toast ante cualquier error no controlado en la página.
+
+### Corregido
+- **Configurador sin opciones**: `Api.getOpciones()` fallaba silenciosamente (rejection no capturada) al abrir "Construye tu tarta". Ahora muestra toast y no abre el modal.
+- **Tarta incompleta**: el guard de "Añadir al carrito" hacía `return` en silencio; ahora avisa "Faltan opciones por elegir...".
+- **Checkout**: carrito vacío o error del servidor mostraban avisos solo dentro del drawer; ahora también salen toasts (éxito y error).
+- **Carga de productos fallida**: además del mensaje en el grid, se muestra un toast.
+- **Formulario de contacto**: sustituido `alert()` nativo por un toast de éxito.
+
+**Cómo usarlo:** recargar con **Ctrl+F5**. Probar a cortar el servidor (apagar `node`) y recargar: saldrá un toast de error en lugar de un fallo mudo.
+
 ## [0.3.2] - 2026-08-16 — Bugfixes: borrar tarta del carrito + validación de opciones
 
 ### Corregido (commit `f1074b3`)
