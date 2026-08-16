@@ -3,6 +3,19 @@
 Registro de todo lo que se sube al repositorio en cada `git push`.
 Cada entrada indica qué funcionalidad se añadió y cómo usarla.
 
+## [0.6.0] - 2026-08-16 — Docker Compose completo (frontend + API + BD)
+
+### Funcionalidad añadida (commit `ffd269e`)
+- **Stack de 3 servicios** en `docker/docker-compose.yml`: `web` (nginx, sirve la SPA y `/admin/` en el puerto 8080), `api` (Node/Express en el 3000) y `postgres` (5432). Se levanta todo con un solo comando.
+- **`docker/api.Dockerfile`**: backend + estáticos del frontend (Node 20 alpine, usuario no-root, `npm ci --omit=dev`).
+- **`docker/nginx.Dockerfile` + `docker/nginx.conf`**: sirve `index.html`, `/admin/`, `/src/` e `/img/`, y proxifica `/api/` hacia el contenedor `api`.
+- **`docker/init/01-init.sh`**: inicialización automática de la BD la primera vez, en el orden correcto: `schema → roles → seed → migraciones 001-003 → seed_kokoro`. Las migraciones van después del seed (necesitan la tienda 1) y antes del seed_kokoro (éste sobrescribe las opciones).
+- **`.dockerignore`** en la raíz: evita hornear `.env` y `node_modules` en las imágenes.
+- **`db/seed_kokoro.sql`**: ahora limpia el pedido demo de `seed.sql` antes de reconstruir el catálogo, para que una inicialización en frío no falle por la FK de `pedido_items`.
+- **Verificado**: el stack entero responde (catálogo 16 productos, configurador, `/admin/`, imágenes) y la suite completa sigue **36/36** contra los contenedores.
+
+**Cómo usarlo:** `docker compose -f docker/docker-compose.yml up -d --build` → tienda en http://localhost:8080, admin en `/admin/`, API en :3000. `down -v` borra también la BD.
+
 ## [0.5.0] - 2026-08-16 — Panel de administración (`/admin/`)
 
 ### Funcionalidad añadida (commit `d63b173`)
