@@ -20,13 +20,15 @@
   <!-- Header -->
   <header class="header">
     <nav class="nav">
-      <a href="#productos" class="nav-link">Productos</a>
-      <a href="#nosotros" class="nav-link">Nosotros</a>
-      <a href="/" class="logo" id="shop-logo">
+      <button type="button" class="logo nav-trigger" id="nav-trigger" aria-expanded="false" aria-controls="nav-menu">
         <img class="logo-img" src="/img/perfil.jpg" alt="Kokoro Cakes">
         <span>Kokoro<br>Cakes</span>
-      </a>
-      <a href="#contacto" class="nav-link">Contacto</a>
+      </button>
+      <div class="nav-links">
+        <a href="#productos" class="nav-link">Productos</a>
+        <a href="#nosotros" class="nav-link">Nosotros</a>
+        <a href="#contacto" class="nav-link">Contacto</a>
+      </div>
       <button type="button" class="cart-btn" id="cart-btn" aria-label="Abrir carrito">
         <span class="cart-count" id="cart-count">0</span>
         Carrito
@@ -86,6 +88,18 @@
     <p id="footer-texto">Kokoro Cakes · Barcelona · Encargos por Instagram @kokorocakess</p>
     <p>Hecho con BakeryCloud — plantilla multi-tenant de marca blanca</p>
   </footer>
+
+  <!-- Menú lateral (desliza por la izquierda, como el carrito) -->
+  <div class="menu-overlay" id="menu-overlay"></div>
+  <aside class="nav-menu" id="nav-menu" aria-label="Menú de navegación">
+    <div class="drawer-head nav-menu-head">
+      <h3>Menú</h3>
+      <button type="button" class="drawer-close" id="menu-close" aria-label="Cerrar menú">&times;</button>
+    </div>
+    <a href="#productos" class="nav-link">Productos</a>
+    <a href="#nosotros" class="nav-link">Nosotros</a>
+    <a href="#contacto" class="nav-link">Contacto</a>
+  </aside>
 
   <!-- Drawer del carrito -->
   <div class="drawer-overlay" id="drawer-overlay"></div>

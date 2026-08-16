@@ -556,6 +556,46 @@ const App = (() => {
     $('#drawer-close').addEventListener('click', cerrarDrawer);
     overlay.addEventListener('click', cerrarDrawer);
 
+    const navTrigger = $('#nav-trigger');
+    const navMenu = $('#nav-menu');
+    const menuOverlay = $('#menu-overlay');
+    const menuClose = $('#menu-close');
+    const navMq = window.matchMedia('(max-width: 760px)');
+    const abrirMenu = () => {
+      navMenu.classList.add('open');
+      menuOverlay.classList.add('open');
+      navTrigger.setAttribute('aria-expanded', 'true');
+    };
+    const cerrarMenu = () => {
+      navMenu.classList.remove('open');
+      menuOverlay.classList.remove('open');
+      navTrigger.setAttribute('aria-expanded', 'false');
+    };
+    navTrigger.addEventListener('click', () => {
+      if (!navMq.matches) return;
+      if (navMenu.classList.contains('open')) cerrarMenu();
+      else abrirMenu();
+    });
+    menuClose.addEventListener('click', cerrarMenu);
+    menuOverlay.addEventListener('click', cerrarMenu);
+    navMenu.querySelectorAll('a').forEach((link) => link.addEventListener('click', cerrarMenu));
+
+    // Header que se encoge y se oculta al hacer scroll hacia abajo (solo móvil)
+    const headerEl = document.querySelector('.header');
+    const headerMq = window.matchMedia('(max-width: 760px)');
+    let lastScrollY = window.scrollY;
+    window.addEventListener('scroll', () => {
+      if (!headerMq.matches) return;
+      const y = window.scrollY;
+      headerEl.classList.toggle('shrink', y > 40);
+      if (y > lastScrollY && y > 80) {
+        headerEl.classList.add('hide');
+      } else if (y < lastScrollY) {
+        headerEl.classList.remove('hide');
+      }
+      lastScrollY = y;
+    }, { passive: true });
+
     $('#modal-close').addEventListener('click', cerrarModal);
     modalOverlay.addEventListener('click', cerrarModal);
     modalAdd.addEventListener('click', () => {
@@ -570,6 +610,7 @@ const App = (() => {
     });
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
+        cerrarMenu();
         cerrarModal();
         cerrarConfig();
         cerrarDrawer();

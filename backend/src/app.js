@@ -3,6 +3,7 @@ const path = require('path');
 const cors = require('cors');
 const resolveTenant = require('./middleware/tenant');
 const { uploadDir } = require('./config/env');
+const { servirImagen } = require('./storage');
 
 const app = express();
 
@@ -40,7 +41,9 @@ app.use(
 // Imágenes subidas por el panel admin (sirve /api/imagenes/<archivo>).
 // Se monta ANTES del middleware de tenant: son archivos públicos y no deben
 // depender de la resolución de tienda (p. ej. en img src del navegador).
+// En local las sirve express.static; con S3 configurado, el proxy las trae del bucket.
 app.use('/api/imagenes', express.static(uploadDir, { maxAge: '7d', immutable: true }));
+app.use('/api/imagenes', servirImagen);
 
 // El middleware de tenant se ejecuta para todas las rutas de la API
 app.use('/api', resolveTenant);

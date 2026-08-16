@@ -688,3 +688,35 @@ test('admin: DELETE /imagenes de un archivo inexistente devuelve 404', async () 
   });
   assert.equal(res.status, 404);
 });
+
+// El modo S3 (producción) se prueba cuando hay un bucket y un endpoint
+// (p. ej. LocalStack o S3 real) en el entorno. Sin ellos, se omite.
+test('admin: POST /imagenes con S3 configurado guarda y borra del bucket', { skip: !(process.env.S3_BUCKET && process.env.S3_ENDPOINT) }, async (t) => {
+  const png = Buffer.from(
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+    'base64'
+  );
+  const fd = new FormData();
+  fd.append('file', new Blob([png], { type: 'image/png' }), 'prueba-s3.png');
+
+  const res = await fetch(baseURL + '/api/admin/imagenes', {
+    method: 'POST',
+    headers: { 'X-Tenant-Slug': T.koko, Authorization: `Bearer ${token}` },
+    body: fd,
+  });
+  assert.equal(res.status, 201);
+  const { url } = await res.json();
+  assert.match(url, /^\/api\/imagenes\/\d+-[a-z0-9-]+\.png$/);
+
+  // Se sirve a través del proxy S3
+  const servida = await fetch(baseURL + url);
+  assert.equal(servida.status, 200);
+
+  const del = await fetch(baseURL + `/api/admin/imagenes/${url.replace('/api/imagenes/', '')}`, {
+    method: 'DELETE',
+    headers: { 'X-Tenant-Slug': T.koko, Authorization: `Bearer ${token}` },
+  });
+  assert.equal(del.status, 200);
+  const noExiste = await fetch(baseURL + url);
+  assert.equal(noExiste.status, 404);
+});

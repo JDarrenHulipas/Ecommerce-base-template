@@ -117,6 +117,71 @@ test('E2E: la página carga y muestra el catálogo', { timeout: 120000 }, async 
   }
 });
 
+test('E2E: en móvil el logo Kokoro Cakes abre un menú lateral que se desliza por la izquierda', { timeout: 120000 }, async (t) => {
+  if (!ready) { t.skip(skipReason); return; }
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  const page = await context.newPage();
+  try {
+    await page.goto(BASE + '/', { waitUntil: 'domcontentloaded' });
+    await page.waitForSelector('#grid-productos .card');
+
+    assert.ok(await page.isVisible('#nav-trigger'), 'el logo debe ser visible en móvil');
+    assert.equal(await page.locator('#nav-toggle').count(), 0, 'no debe haber botón hamburguesa');
+    assert.equal(await page.locator('#nav-menu.open').count(), 0, 'el menú debe estar cerrado al inicio');
+
+    await page.click('#nav-trigger');
+    await page.waitForSelector('#nav-menu.open');
+    await page.waitForFunction(() => {
+      const box = document.querySelector('#nav-menu').getBoundingClientRect();
+      return box.x >= 0;
+    });
+    assert.equal(await page.locator('#nav-menu .nav-link').count(), 3);
+    assert.equal(await page.locator('#nav-menu a[href="#productos"]').count(), 1);
+    assert.equal(await page.locator('#nav-menu a[href="#nosotros"]').count(), 1);
+    assert.equal(await page.locator('#nav-menu a[href="#contacto"]').count(), 1);
+    assert.equal(await page.locator('#nav-menu #cart-btn').count(), 0, 'el carrito no debe estar dentro del menú');
+
+    const box = await page.locator('#nav-menu').boundingBox();
+    assert.ok(box && Math.abs(box.x) < 2, `el menú debe pegarse al borde izquierdo (x=${box && box.x})`);
+    assert.ok(await page.isVisible('#menu-overlay.open'), 'debe aparecer el fondo oscuro');
+
+    await page.click('#menu-close');
+    assert.equal(await page.locator('#nav-menu.open').count(), 0, 'el menú se cierra con el botón ×');
+
+    await page.click('#nav-trigger');
+    await page.waitForSelector('#nav-menu.open');
+    await page.click('#nav-menu a[href="#productos"]');
+    assert.equal(await page.locator('#nav-menu.open').count(), 0, 'el menú se cierra al elegir una sección');
+  } finally {
+    await context.close();
+  }
+});
+
+test('E2E: en móvil el header se encoge y se oculta al bajar, y reaparece al subir', { timeout: 120000 }, async (t) => {
+  if (!ready) { t.skip(skipReason); return; }
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  const page = await context.newPage();
+  try {
+    await page.goto(BASE + '/', { waitUntil: 'domcontentloaded' });
+    await page.waitForSelector('#grid-productos .card');
+
+    await page.evaluate(() => window.scrollTo(0, 800));
+    await page.waitForSelector('.header.hide');
+    await page.waitForFunction(() =>
+      document.querySelector('.header').classList.contains('shrink')
+    );
+
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await page.waitForFunction(() => {
+      const h = document.querySelector('.header');
+      return !h.classList.contains('hide');
+    });
+    assert.ok(await page.isVisible('#nav-trigger'), 'el logo debe reaparecer al subir');
+  } finally {
+    await context.close();
+  }
+});
+
 test('E2E: añadir producto al carrito abre el drawer y actualiza el contador', { timeout: 120000 }, async (t) => {
   if (!ready) { t.skip(skipReason); return; }
   const { context, page } = await nuevaPagina();

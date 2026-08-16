@@ -10,7 +10,7 @@
 | Frontend | JavaScript vanilla (SPA) + Design System basado en variables de tema |
 | Backend | Node.js + Express (REST API multi-tenant) |
 | Base de datos | PostgreSQL (multi-tenant con Row Level Security) |
-| Almacenamiento | AWS S3 (bucket organizado por `/tienda-id/`) |
+| Almacenamiento | AWS S3 (opcional) con degradado a disco local para desarrollo |
 | Servidores | AWS región España `eu-south-2` (EC2 / RDS) |
 | Contenedores | Docker + Docker Compose |
 | Red / CDN | Cloudflare (DNS, SSL, caché) |
@@ -50,17 +50,25 @@ bakerycloud/
 │   ├── seed_kokoro.sql         # catálogo de Kokoro Cakes
 │   └── migrations/             # cambios de esquema versionados (001-003)
 ├── docker/
-│   ├── docker-compose.yml      # stack completo (web + api + postgres)
+│   ├── docker-compose.yml      # stack completo (web + api + postgres) [dev]
+│   ├── docker-compose.prod.yml # stack de producción (web + api, sin postgres local)
 │   ├── api.Dockerfile          # imagen del backend (API + estáticos)
 │   ├── nginx.Dockerfile        # imagen del frontend (nginx)
 │   ├── nginx.conf              # proxy de /api + SPA
-│   └── init/                   # inicialización automática de la BD (1ª vez)
-├── infra/aws/                  # IaC (semanas 7-8)
-│   ├── ec2/                    # servidor de despliegue
-│   ├── rds/                    # base de datos gestionada
-│   └── s3/                     # almacenamiento de archivos
+│   ├── init/                   # inicialización automática de la BD (1ª vez)
+│   └── deploy.sh               # script de despliegue en la EC2 (BD + stack)
+├── infra/aws/                  # IaC con Terraform (semanas 7-8)
+│   ├── providers.tf            # backend AWS + estado
+│   ├── network.tf              # VPC, subredes, security groups, IP elástica
+│   ├── ec2.tf                  # instancia de aplicación (Docker)
+│   ├── rds.tf                  # PostgreSQL 16 gestionado
+│   ├── s3.tf                   # bucket de imágenes subidas
+│   ├── iam.tf                  # rol de instancia para S3
+│   ├── outputs.tf / variables.tf
+│   ├── ec2/user_data.sh        # bootstrap de la EC2 (Docker + compose)
+│   └── README.md               # guía de despliegue e infraestructura
 ├── docs/arquitectura/          # documentación técnica
-├── .github/workflows/          # CI/CD (semanas 7-8)
+├── .github/workflows/deploy.yml # CI/CD: tests + deploy por SSH a EC2
 ├── .env.example
 └── README.md
 ```
@@ -69,7 +77,7 @@ bakerycloud/
 
 - [x] **Semanas 1-3** — Esquema SQL multi-tenant, repositorio Git, REST API (productos y pedidos)
 - [x] **Semanas 4-6** — Figma, frontend dinámico, carrito en LocalStorage, Docker Compose
-- [ ] **Semanas 7-8** — AWS `eu-south-2`, EC2, S3, pipeline GitHub Actions
+- [x] **Semanas 7-8** — AWS `eu-south-2`, EC2, S3, pipeline GitHub Actions
 - [ ] **Semanas 9-10** — Cloudflare (DNS/SSL/CDN), pruebas E2E, alta de segundo subproyecto
 
 ## Estado actual
@@ -85,8 +93,10 @@ bakerycloud/
 - [x] Formulario de contacto real (guarda consultas por tienda) + toasts de aviso en toda la página
 - [x] Panel de administración (`/admin/`): login con JWT, selector de tienda, crear/editar/eliminar productos (imagen, stock, precio, disponibilidad, ingredientes) y pestañas de Pedidos (con cambio de estado) y Contactos
 - [x] Panel de administración: pestaña "Contenido de la portada" para editar anuncios, hero, nosotros, contacto y footer (por tienda)
+- [x] Subida de imágenes del admin con doble almacenamiento: disco local (desarrollo) o **S3** (producción), misma URL pública
 - [x] Suite de integración del backend (health, productos, pedidos, opciones, contactos, contenido, admin) + tests E2E de Playwright
-- [ ] AWS `eu-south-2` + CI/CD (semanas 7-8)
+- [x] AWS `eu-south-2` con Terraform: VPC, EC2 (Docker), RDS PostgreSQL 16, S3 e IAM
+- [x] CI/CD con GitHub Actions: tests automáticos + deploy a la EC2 por SSH (init/migraciones de BD idempotentes)
 - [ ] Cloudflare + lanzamiento (semanas 9-10)
 - [x] Prerrequisitos locales: **Node.js 20+** instalado ✓, **Docker Desktop** instalado ✓
 
@@ -116,6 +126,25 @@ docker compose -f docker/docker-compose.yml down -v     # borrar también la BD
 ```
 
 > La BD se inicializa **solo la primera vez** (schema → roles → seed → migraciones → seed de Kokoro). Si cambias `db/*.sql`, borra el volumen con `down -v` para regenerarla.
+
+## Despliegue en AWS (producción)
+
+La infraestructura vive en `infra/aws/` (Terraform) y el pipeline de CI/CD en
+`.github/workflows/deploy.yml`. Guía completa: **`infra/aws/README.md`**.
+
+```bash
+# 1. Crear la infraestructura (una vez)
+cd infra/aws
+terraform init && terraform apply
+
+# 2. Configurar los secretos en GitHub (ver infra/aws/README.md) y hacer push a master
+git push origin master   # tests → deploy automático a la EC2
+```
+
+El primer despliegue inicializa la BD de RDS automáticamente (schema → roles →
+seed → migraciones → seed de Kokoro) usando `DB_INIT_URL`; en los siguientes
+solo aplica las migraciones, sin tocar los datos. Con `S3_BUCKET` definido, las
+imágenes del admin se guardan en S3 en vez del disco local.
 
 ### Alternativa: arranque manual (desarrollo con `node`)
 
@@ -180,7 +209,7 @@ Endpoints (el tenant se resuelve por cabecera `X-Tenant-Slug` en desarrollo):
 | PUT | `/api/admin/contenido` | Guarda los textos de la portada `{ contenido: [{ clave, valor }] }` (requiere token) |
 | POST | `/api/admin/imagenes` | Sube una imagen (multipart, campo `file`; JPEG/PNG/WebP/GIF, máx. 5 MB) → `{ url: "/api/imagenes/<archivo>" }` (requiere token) |
 | DELETE | `/api/admin/imagenes/:archivo` | Borra un archivo de imagen subido; 404 si no existe (requiere token) |
-| GET | `/api/imagenes/<archivo>` | Público: sirve las imágenes subidas por el admin |
+| GET | `/api/imagenes/<archivo>` | Público: sirve las imágenes subidas por el admin (desde S3 o disco local según `S3_BUCKET`) |
 
 > El panel admin vive en `http://localhost:3000/admin/` y guarda el JWT en
 > LocalStorage. Solo edita la tienda seleccionada (RLS): los productos de otras
@@ -207,5 +236,14 @@ ADMIN_PASSWORD=super-secreto
 ADMIN_SECRET=clave-firma-jwt
 ```
 
-Si faltan, las rutas `/api/admin` responden **503** (panel no disponible) y los
-tests de login se marcan como fallidos/saltados.
+Almacenamiento de imágenes en `.env`:
+
+```
+# Sin S3_BUCKET → disco local (UPLOAD_DIR, por defecto backend/uploads)
+S3_BUCKET=bakerycloud-prod-uploads
+S3_REGION=eu-south-2
+```
+
+Si faltan `ADMIN_PASSWORD`/`ADMIN_SECRET`, las rutas `/api/admin` responden
+**503** (panel no disponible) y los tests de login se marcan como
+fallidos/saltados.

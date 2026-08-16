@@ -3,6 +3,26 @@
 Registro de todo lo que se sube al repositorio en cada `git push`.
 Cada entrada indica qué funcionalidad se añadió y cómo usarla.
 
+## [0.13.0] - 2026-08-16 — Menú móvil deslizante y header ocultable al hacer scroll
+
+### Funcionalidad añadida
+- **Menú lateral desde la izquierda (móvil)**: al tocar el logo **KOKORO Cakes** se abre un drawer que se desliza desde la izquierda (mismo patrón que el carrito: cabecera "Menú" con botón ×, fondo oscuro, animación de 0.3s). Dentro van **Productos, Nosotros y Contacto**. Se cierra con el ×, tocando el fondo, al elegir una sección o con `Esc`. En desktop la navegación se mantiene en línea. El drawer vive fuera del `<header>` para que el `z-index` no quede tapado por el overlay (igual que el carrito).
+- **Header que se encoge y se oculta (móvil)**: al hacer scroll hacia abajo (>80px) el header se hace más pequeño (logo, padding y carrito reducidos, con transición suave) y se desliza hacia arriba ocultándose; al subir reaparece. Solo en móvil (≤760px); en desktop queda fijo.
+- **Tests**: suite E2E **14/14**. Nuevos tests: apertura del menú lateral (pegado al borde izquierdo, 3 enlaces, carrito fuera del menú, cierre con × y al elegir sección) y ocultación/reaparición del header con scroll.
+
+**Cómo usarlo:** en móvil, pulsa el logo **KOKORO Cakes** para abrir el menú. Al hacer scroll hacia abajo el header se encoge y se oculta; al subir reaparece.
+
+## [0.12.0] - 2026-08-16 — Infraestructura AWS, CI/CD y almacenamiento S3
+
+### Funcionalidad añadida
+- **Infraestructura como código con Terraform** (`infra/aws/`): VPC con 2 subredes públicas y 2 privadas, EC2 `t3.micro` (Amazon Linux 2023 con Docker + compose por `user_data.sh` e IP elástica), RDS PostgreSQL 16 privado (solo accesible desde la EC2), bucket S3 de imágenes cifrado y rol IAM de instancia para hablar con S3. Región `eu-south-2`.
+- **Pipeline CI/CD** (`.github/workflows/deploy.yml`): en cada `push` a `master` levanta el stack de docker compose, ejecuta `test:api` + `test:e2e`, y si pasan sube el código a la EC2 por SSH (scp), escribe `.env` con los secretos de GitHub y ejecuta `docker/deploy.sh`.
+- **Despliegue idempotente** (`docker/deploy.sh` + `docker/docker-compose.prod.yml`): el primer despliegue inicializa la BD de RDS (schema → roles → seed → migraciones → seed de Kokoro) usando `DB_INIT_URL`; en los siguientes solo aplica las migraciones, sin tocar los datos. `docker-compose.prod.yml` levanta solo api + web (sin postgres local, usa RDS).
+- **Almacenamiento de imágenes en S3**: con `S3_BUCKET` definido, `POST/DELETE /api/admin/imagenes` guarda el archivo en S3 y `GET /api/imagenes/<clave>` lo sirve desde ahí; la URL pública es la misma que con disco local, así que el frontend no cambia. Sin `S3_BUCKET` se usa el disco local (como en desarrollo). En la EC2 las credenciales las inyecta el rol de instancia.
+- **Tests**: suite completa **61/61** (49 integración + 12 E2E) pasando con el refactor de storage (el test de S3 se omite sin bucket). El pipeline de CI ejecuta la misma suite.
+
+**Cómo usarlo:** `cd infra/aws && terraform init && terraform apply` para crear la infra; rellenar los secretos de GitHub (ver `infra/aws/README.md`); `git push origin master` dispara tests + deploy. Guía completa en `infra/aws/README.md`.
+
 ## [0.11.0] - 2026-08-16 — Estado de pedidos editable en el panel admin
 
 ### Funcionalidad añadida

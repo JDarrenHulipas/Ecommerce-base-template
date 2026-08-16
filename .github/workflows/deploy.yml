@@ -1,0 +1,99 @@
+# ============================================================
+# BakeryCloud - CI/CD (GitHub Actions)
+#
+#  - push a `master`  ->  tests (docker compose completo) -> deploy EC2
+#
+# Secretos necesarios para el deploy (Settings > Secrets > Actions):
+#   EC2_HOST, EC2_SSH_KEY (clave privada del key pair de la EC2),
+#   DATABASE_URL (rol bakery_api, RDS), DB_INIT_URL (usuario maestro),
+#   DEFAULT_TENANT_SLUG, ADMIN_PASSWORD, ADMIN_SECRET,
+#   S3_BUCKET, S3_REGION
+# ============================================================
+
+name: CI/CD
+
+on:
+  push:
+    branches: [master]
+
+concurrency:
+  group: bakerycloud-deploy
+  cancel-in-progress: false
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: postgres://bakery_api:api_secret_123@localhost:5432/bakerycloud
+      DEFAULT_TENANT_SLUG: kokorocakes
+      ADMIN_PASSWORD: admin1234
+      ADMIN_SECRET: dev-secret-cambiar-en-produccion
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Levantar el stack completo (frontend + API + BD)
+        run: docker compose -f docker/docker-compose.yml up -d --build
+
+      - name: Esperar a que la API esté sana
+        run: |
+          for i in $(seq 1 60); do
+            curl -sf http://localhost:3000/api/health >/dev/null && break
+            sleep 2
+          done
+          curl -sf http://localhost:3000/api/health >/dev/null
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Instalar dependencias del backend
+        working-directory: backend
+        run: npm ci
+
+      - name: Tests de integración (API + admin)
+        working-directory: backend
+        run: npm run test:api
+
+      - name: Tests E2E (Playwright)
+        working-directory: backend
+        run: |
+          npx playwright install --with-deps chromium
+          npm run test:e2e
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Subir el código a la EC2 (sin .env ni .git)
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ec2-user
+          key: ${{ secrets.EC2_SSH_KEY }}
+          source: "backend,frontend,db,docker,infra,.env.example"
+          target: /app/bakerycloud
+
+      - name: Escribir .env y desplegar
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ec2-user
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            set -euo pipefail
+            cat > /app/bakerycloud/.env <<'EOF'
+            DATABASE_URL=${{ secrets.DATABASE_URL }}
+            DB_INIT_URL=${{ secrets.DB_INIT_URL }}
+            DEFAULT_TENANT_SLUG=${{ secrets.DEFAULT_TENANT_SLUG }}
+            ADMIN_PASSWORD=${{ secrets.ADMIN_PASSWORD }}
+            ADMIN_SECRET=${{ secrets.ADMIN_SECRET }}
+            S3_BUCKET=${{ secrets.S3_BUCKET }}
+            S3_REGION=${{ secrets.S3_REGION }}
+            EOF
+            cd /app/bakerycloud
+            chmod +x docker/deploy.sh
+            ./docker/deploy.sh

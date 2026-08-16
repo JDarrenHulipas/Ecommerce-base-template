@@ -1,0 +1,48 @@
+# ============================================================
+# BakeryCloud - Docker Compose de PRODUCCIÓN (EC2)
+#
+# Igual que docker-compose.yml pero SIN el servicio postgres:
+# en producción la BD es Amazon RDS (ver infra/aws/) y las
+# imágenes subidas van a S3 (no a un volumen local).
+#
+# Uso en el servidor (lo hace docker/deploy.sh):
+#   docker compose --env-file .env -f docker/docker-compose.prod.yml up -d --build
+# ============================================================
+
+name: bakerycloud-prod
+
+services:
+  api:
+    build:
+      context: ..
+      dockerfile: docker/api.Dockerfile
+    container_name: bakerycloud-api
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: ${DATABASE_URL}
+      DEFAULT_TENANT_SLUG: ${DEFAULT_TENANT_SLUG}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      ADMIN_SECRET: ${ADMIN_SECRET}
+      ADMIN_TOKEN_TTL: "86400"
+      S3_BUCKET: ${S3_BUCKET}
+      S3_REGION: ${S3_REGION}
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:3000/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+
+  web:
+    build:
+      context: ..
+      dockerfile: docker/nginx.Dockerfile
+    container_name: bakerycloud-web
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      api:
+        condition: service_healthy
