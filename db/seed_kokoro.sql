@@ -16,6 +16,12 @@ UPDATE tiendas
 -- Activa el tenant 1 (Row Level Security)
 SELECT app.set_tenant(1);
 
+-- El seed base (seed.sql) crea un pedido de ejemplo que referencia productos
+-- de la tienda 1; se elimina para poder reconstruir el catálogo de Kokoro Cakes.
+DELETE FROM pedido_items WHERE tienda_id = 1;
+DELETE FROM pedidos    WHERE tienda_id = 1;
+DELETE FROM clientes   WHERE tienda_id = 1;
+
 -- Limpia el catálogo anterior de esta tienda
 DELETE FROM productos  WHERE tienda_id = 1;
 DELETE FROM categorias WHERE tienda_id = 1;

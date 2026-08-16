@@ -1,7 +1,20 @@
 # ============================================================
-# BakeryCloud - Docker Compose (entorno de desarrollo local)
-# Uso: docker compose -f docker/docker-compose.yml up -d
+# BakeryCloud - Docker Compose COMPLETO (frontend + API + BD)
+#
+# Levanta toda la plataforma con un solo comando:
+#   docker compose -f docker/docker-compose.yml up -d --build
+#
+#   - web      : http://localhost:8080  (frontend + panel /admin/)
+#   - api      : http://localhost:3000  (REST API, también sirve estáticos)
+#   - postgres : localhost:5432         (BD, se inicializa sola la 1ª vez)
+#
+# Variables opcionales (por defecto sirven para desarrollo local):
+#   POSTGRES_DB / POSTGRES_USER / POSTGRES_PASSWORD / POSTGRES_PORT
+#   BAKERY_API_PASSWORD   (contraseña del rol bakery_api)
+#   ADMIN_PASSWORD / ADMIN_SECRET / DEFAULT_TENANT_SLUG
 # ============================================================
+
+name: bakerycloud
 
 services:
   postgres:
@@ -16,11 +29,51 @@ services:
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./init:/docker-entrypoint-initdb.d:ro
+      - ../db:/db:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 15
+
+  api:
+    build:
+      context: ..
+      dockerfile: docker/api.Dockerfile
+    container_name: bakerycloud-api
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: postgres://bakery_api:${BAKERY_API_PASSWORD:-api_secret_123}@postgres:5432/${POSTGRES_DB:-bakerycloud}
+      DEFAULT_TENANT_SLUG: ${DEFAULT_TENANT_SLUG:-kokorocakes}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin1234}
+      ADMIN_SECRET: ${ADMIN_SECRET:-dev-secret-cambiar-en-produccion}
+      ADMIN_TOKEN_TTL: "86400"
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:3000/api/health"]
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 10
+      start_period: 5s
+
+  web:
+    build:
+      context: ..
+      dockerfile: docker/nginx.Dockerfile
+    container_name: bakerycloud-web
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    depends_on:
+      api:
+        condition: service_healthy
 
 volumes:
   postgres_data:

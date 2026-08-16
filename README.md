@@ -50,7 +50,11 @@ bakerycloud/
 │   ├── seed_kokoro.sql         # catálogo de Kokoro Cakes
 │   └── migrations/             # cambios de esquema versionados (001-003)
 ├── docker/
-│   └── docker-compose.yml      # PostgreSQL (desarrollo local)
+│   ├── docker-compose.yml      # stack completo (web + api + postgres)
+│   ├── api.Dockerfile          # imagen del backend (API + estáticos)
+│   ├── nginx.Dockerfile        # imagen del frontend (nginx)
+│   ├── nginx.conf              # proxy de /api + SPA
+│   └── init/                   # inicialización automática de la BD (1ª vez)
 ├── infra/aws/                  # IaC (semanas 7-8)
 │   ├── ec2/                    # servidor de despliegue
 │   ├── rds/                    # base de datos gestionada
@@ -76,19 +80,46 @@ bakerycloud/
 - [x] Rol de API (`bakery_api`) con aislamiento de tenant verificado
 - [x] REST API Node.js/Express: productos, pedidos, opciones del configurador y contactos
 - [x] Frontend SPA: catálogo dinámico, modal de detalle, carrito en LocalStorage
+- [x] Docker Compose completo (frontend nginx + API + PostgreSQL) con init automático de la BD
 - [x] Configurador "Construye tu tarta" (tamaño, altura, bizcocho, relleno, decoración, extras) con precio en vivo y snapshot JSONB en el pedido
 - [x] Formulario de contacto real (guarda consultas por tienda) + toasts de aviso en toda la página
 - [x] Panel de administración (`/admin/`): login con JWT, selector de tienda y edición de stock/precio/disponibilidad en el catálogo completo
 - [x] Suite de integración del backend (health, productos, pedidos, opciones, contactos, admin) + tests E2E de Playwright
-- [ ] Docker Compose completo (API + frontend + BD)
 - [ ] AWS `eu-south-2` + CI/CD (semanas 7-8)
 - [ ] Cloudflare + lanzamiento (semanas 9-10)
 - [x] Prerrequisitos locales: **Node.js 20+** instalado ✓, **Docker Desktop** instalado ✓
 
-## Arranque de la base de datos (local)
+## Arranque (local) — Docker Compose completo
+
+El stack completo (frontend + API + BD) se levanta con **un solo comando**:
 
 ```bash
-# 1. Levantar PostgreSQL
+# 1. Levantar frontend + API + PostgreSQL (la 1ª vez construye e inicializa la BD)
+docker compose -f docker/docker-compose.yml up -d --build
+
+# 2. Comprobar que está sano
+docker compose -f docker/docker-compose.yml ps
+```
+
+| Servicio | URL |
+|---|---|
+| Tienda (frontend nginx) | http://localhost:8080 |
+| Panel de administración | http://localhost:8080/admin/ |
+| REST API | http://localhost:3000 |
+
+Detener / borrar todo (incluida la BD):
+
+```bash
+docker compose -f docker/docker-compose.yml down        # detener sin borrar datos
+docker compose -f docker/docker-compose.yml down -v     # borrar también la BD
+```
+
+> La BD se inicializa **solo la primera vez** (schema → roles → seed → migraciones → seed de Kokoro). Si cambias `db/*.sql`, borra el volumen con `down -v` para regenerarla.
+
+### Alternativa: arranque manual (desarrollo con `node`)
+
+```bash
+# 1. Solo PostgreSQL
 docker compose -f docker/docker-compose.yml up -d
 
 # 2. Aplicar esquema, rol y seed (en este orden)
@@ -100,6 +131,14 @@ Get-Content db/seed.sql    -Raw | docker exec -i bakerycloud-postgres psql -U ba
 Get-ChildItem db/migrations/*.sql | ForEach-Object {
   Get-Content $_.FullName -Raw | docker exec -i bakerycloud-postgres psql -U bakery -d bakerycloud -v ON_ERROR_STOP=1
 }
+
+# 4. Catálogo real de Kokoro Cakes
+Get-Content db/seed_kokoro.sql -Raw | docker exec -i bakerycloud-postgres psql -U bakery -d bakerycloud -v ON_ERROR_STOP=1
+
+# 5. API en local
+cd backend
+npm install
+npm run dev   # http://localhost:3000
 ```
 
 Nota: la API se conectará con el rol `bakery_api` (NO dueño de las tablas).

@@ -1,0 +1,28 @@
+# ============================================================
+# BakeryCloud - exclusiones del context de build de Docker
+# (se aplican a los Dockerfiles que usan context = raíz del repo)
+# ============================================================
+
+# Secretos y entornos (¡nunca se hornean en la imagen!)
+**/.env
+**/.env.*
+!.env.example
+
+# Dependencias locales
+node_modules
+**/node_modules
+**/dist
+**/build
+
+# Git, docs y datos locales
+.git
+.gitignore
+docs
+infra
+db/postgres-data
+docker/postgres-data
+
+# Artefactos
+*.log
+Thumbs.db
+.DS_Store
