@@ -1,0 +1,158 @@
+.admin-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding: 1.25rem 2rem;
+  background: var(--vino, #6b2d3a);
+  color: #fff;
+}
+
+.admin-header h1 {
+  margin: 0;
+  font-size: 1.3rem;
+  font-family: 'Playfair Display', serif;
+}
+
+.admin-tools {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.admin-tenant-label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  color: #f3e6dd;
+}
+
+.admin-tenant-label select {
+  padding: 0.35rem 0.5rem;
+  border-radius: 6px;
+  border: 1px solid #d9c4b8;
+}
+
+.admin-tools button {
+  padding: 0.4rem 0.9rem;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 6px;
+  background: transparent;
+  color: #fff;
+  cursor: pointer;
+}
+
+.admin-tools button:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.admin-main {
+  max-width: 1000px;
+  margin: 2rem auto;
+  padding: 0 1.25rem;
+}
+
+.admin-login {
+  max-width: 380px;
+  margin: 4rem auto;
+  padding: 2rem;
+  border: 1px solid var(--beige, #e6d8cf);
+  border-radius: 12px;
+  background: #fff;
+  text-align: center;
+}
+
+.admin-login h2 {
+  margin: 0 0 1rem;
+  font-family: 'Playfair Display', serif;
+}
+
+.admin-login form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.admin-login input {
+  padding: 0.65rem 0.8rem;
+  border: 1px solid #d9c4b8;
+  border-radius: 8px;
+}
+
+.admin-msg {
+  min-height: 1.4em;
+  margin: 0 0 0.75rem;
+  font-size: 0.9rem;
+}
+
+.admin-msg.error {
+  color: #b3261e;
+}
+
+.admin-msg.success {
+  color: #1d7a3c;
+}
+
+.table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--beige, #e6d8cf);
+  border-radius: 12px;
+  background: #fff;
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.admin-table th,
+.admin-table td {
+  padding: 0.6rem 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid #f0e5dc;
+}
+
+.admin-table th {
+  background: var(--beige, #f3e6dd);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.admin-table tr:last-child td {
+  border-bottom: none;
+}
+
+.admin-table input[type='number'] {
+  width: 90px;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid #d9c4b8;
+  border-radius: 6px;
+}
+
+.admin-table .save-btn {
+  padding: 0.4rem 0.9rem;
+  border: none;
+  border-radius: 6px;
+  background: var(--vino, #6b2d3a);
+  color: #fff;
+  cursor: pointer;
+}
+
+.admin-table .save-btn:hover {
+  opacity: 0.9;
+}
+
+.admin-table .save-btn:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+
+.admin-table .stock-low {
+  color: #b3261e;
+  font-weight: 600;
+}

@@ -31,6 +31,10 @@ router.post('/', async (req, res, next) => {
       return res.status(400).json({ error: 'Se requieren cliente.email e items[]' });
     }
 
+    if (!items.every((i) => Number.isInteger(i.cantidad) && i.cantidad > 0)) {
+      return res.status(400).json({ error: 'Cada ítem debe tener una cantidad entera mayor que 0' });
+    }
+
     await client.query('BEGIN');
 
     // Alta/recuperación del cliente de la tienda activa
@@ -75,16 +79,23 @@ router.post('/', async (req, res, next) => {
 
       if (i.configuracion) {
         const conf = i.configuracion;
-        const pick = (id) => opciones.get(String(id));
-        const t = pick(conf.tamano);
-        const a = pick(conf.altura);
-        const b = pick(conf.bizcocho);
-        const r = pick(conf.relleno);
-        const d = pick(conf.decoracion);
-        const ex = (conf.extras || []).map(pick);
+        // La opción debe existir Y pertenecer al grupo esperado
+        const pick = (id, grupo) => {
+          const op = opciones.get(String(id));
+          return op && op.grupo === grupo ? op : null;
+        };
+        const t = pick(conf.tamano, 'tamano');
+        const a = pick(conf.altura, 'altura');
+        const b = pick(conf.bizcocho, 'bizcocho');
+        const r = pick(conf.relleno, 'relleno');
+        const d = pick(conf.decoracion, 'decoracion');
+        const ex = (conf.extras || []).map((id) => pick(id, 'extra'));
 
         if (!t || !a || !b || !r || !d || ex.some((e) => !e)) {
-          throw Object.assign(new Error('Configuración de tarta inválida'), { status: 400 });
+          throw Object.assign(
+            new Error('Configuración de tarta inválida: faltan opciones o alguna no pertenece a su grupo'),
+            { status: 400 }
+          );
         }
 
         unitario = Number(t.precio) + Number(a.precio) + Number(b.precio) + Number(r.precio) + Number(d.precio) +

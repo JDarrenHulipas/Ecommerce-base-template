@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BakeryCloud Admin</title>
+  <link rel="stylesheet" href="/src/styles/main.css">
+  <link rel="stylesheet" href="/admin/admin.css">
+</head>
+<body>
+
+  <header class="admin-header">
+    <h1>BakeryCloud Admin</h1>
+    <div class="admin-tools" id="admin-tools" hidden>
+      <label class="admin-tenant-label">Tienda
+        <select id="admin-tenant" aria-label="Tienda activa"></select>
+      </label>
+      <button type="button" id="admin-refresh">Refrescar</button>
+      <button type="button" id="admin-logout">Salir</button>
+    </div>
+  </header>
+
+  <main class="admin-main">
+    <section class="admin-login" id="admin-login">
+      <h2>Acceso restringido</h2>
+      <p class="admin-msg" id="admin-login-msg" role="status"></p>
+      <form id="admin-login-form">
+        <input type="password" id="admin-password" placeholder="Contraseña de administración"
+               autocomplete="current-password" required aria-label="Contraseña de administración">
+        <button type="submit" class="btn btn-primary">Entrar</button>
+      </form>
+    </section>
+
+    <section class="admin-panel" id="admin-panel" hidden>
+      <p class="admin-msg" id="admin-msg" role="status"></p>
+      <div class="table-wrap">
+        <table class="admin-table" id="admin-table">
+          <thead>
+            <tr>
+              <th>Producto</th>
+              <th>Categoría</th>
+              <th>Precio (€)</th>
+              <th>Stock</th>
+              <th>Disponible</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="admin-tbody"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <script src="/admin/admin.js"></script>
+</body>
+</html>

@@ -223,6 +223,49 @@ test('pedidos: rechaza pedido con producto inexistente (rollback)', async () => 
   }
 });
 
+test('pedidos: rechaza cantidad inválida (negativa, cero o ausente)', async () => {
+  const prod = (await api('/api/productos/bento-chocograve')).body;
+  const casos = [
+    { cliente: { email: 'qty@example.com' }, items: [{ producto_id: prod.id, cantidad: -2 }] },
+    { cliente: { email: 'qty@example.com' }, items: [{ producto_id: prod.id, cantidad: 0 }] },
+    { cliente: { email: 'qty@example.com' }, items: [{ producto_id: prod.id, cantidad: 1.5 }] },
+    { cliente: { email: 'qty@example.com' }, items: [{ producto_id: prod.id }] },
+  ];
+
+  for (const body of casos) {
+    const { status } = await api('/api/pedidos', { method: 'POST', body });
+    assert.equal(status, 400, `debería rechazar: ${JSON.stringify(body)}`);
+  }
+});
+
+test('pedidos: rechaza configuración con opciones de grupo equivocado', async () => {
+  const { body: opciones } = await api('/api/opciones');
+  const g = opciones.grupos;
+  const bizcochoId = g.bizcocho[0].id; // un bizcocho NO es un tamaño
+
+  const { status, body } = await api('/api/pedidos', {
+    method: 'POST',
+    body: {
+      cliente: { email: `grupo-${Date.now()}@example.com` },
+      items: [{
+        producto_id: opciones.tarta_base.id,
+        cantidad: 1,
+        configuracion: {
+          tamano: bizcochoId,
+          altura: g.altura[0].id,
+          bizcocho: g.bizcocho[0].id,
+          relleno: g.relleno[0].id,
+          decoracion: g.decoracion[0].id,
+          extras: [],
+        },
+      }],
+    },
+  });
+
+  assert.equal(status, 400);
+  assert.match(body.error, /grupo/i);
+});
+
 // ---------------------------------------------------------------------------
 // POST /api/contactos
 // ---------------------------------------------------------------------------

@@ -5,8 +5,26 @@ const resolveTenant = require('./middleware/tenant');
 
 const app = express();
 
+app.disable('x-powered-by');
+
 app.use(cors());
 app.use(express.json());
+
+// Headers de seguridad en todas las respuestas
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  res.setHeader(
+    'Content-Security-Policy',
+    "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
+      "font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: https:; " +
+      "connect-src 'self' https://fonts.googleapis.com https://fonts.gstatic.com; " +
+      "object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+  );
+  next();
+});
 
 // Frontend estático (plantilla visible) en la raíz
 app.use(
@@ -29,6 +47,7 @@ app.use('/api/productos', require('./routes/productos'));
 app.use('/api/pedidos', require('./routes/pedidos'));
 app.use('/api/opciones', require('./routes/opciones'));
 app.use('/api/contactos', require('./routes/contactos'));
+app.use('/api/admin', require('./routes/admin'));
 
 // Manejo de errores centralizado
 app.use((err, req, res, next) => {

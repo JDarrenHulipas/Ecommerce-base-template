@@ -57,6 +57,11 @@ const App = (() => {
   const formatEUR = (n) =>
     n.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' });
 
+  const escapeHtml = (s) =>
+    String(s ?? '').replace(/[&<>"']/g, (c) => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+    }[c]));
+
   const toastContainer = $('#toast-container');
 
   function notify(mensaje, tipo = 'error', duracion = 5000) {
@@ -66,7 +71,7 @@ const App = (() => {
     toast.innerHTML = `
       <span class="toast-icon" aria-hidden="true">${icono}</span>
       <div class="toast-body"></div>
-      <button class="toast-close" aria-label="Cerrar aviso">&times;</button>
+      <button type="button" class="toast-close" aria-label="Cerrar aviso">&times;</button>
     `;
     toast.querySelector('.toast-body').textContent = mensaje;
     toast.querySelector('.toast-close').addEventListener('click', () => {
@@ -146,9 +151,9 @@ const App = (() => {
       card.style.animationDelay = `${i * 0.06}s`;
       card.innerHTML = `
         <div class="card-body">
-          <span class="card-cat">${p.categoria || 'Dulce'}</span>
-          <h3 class="card-name">${p.nombre}</h3>
-          <p class="card-desc">${p.descripcion || ''}</p>
+          <span class="card-cat">${escapeHtml(p.categoria) || 'Dulce'}</span>
+          <h3 class="card-name">${escapeHtml(p.nombre)}</h3>
+          <p class="card-desc">${escapeHtml(p.descripcion)}</p>
           <div class="card-foot">
             <span class="card-price">${formatEUR(p.precio)}</span>
             <button class="btn-add" data-id="${p.id}" ${p.stock <= 0 ? 'disabled' : ''}>
@@ -211,15 +216,15 @@ const App = (() => {
         div.innerHTML = `
           <div class="di-thumb" data-thumb="${itemKey}"></div>
           <div class="di-info">
-            <div class="di-name">${item.nombre}</div>
+            <div class="di-name">${escapeHtml(item.nombre)}</div>
             <div class="di-price">${formatEUR(item.precio)}</div>
           </div>
           <div class="di-qty">
-            <button data-action="decr" data-id="${itemKey}">−</button>
+            <button type="button" data-action="decr" data-id="${itemKey}">−</button>
             <span class="qty">${item.cantidad}</span>
-            <button data-action="incr" data-id="${itemKey}">+</button>
+            <button type="button" data-action="incr" data-id="${itemKey}">+</button>
           </div>
-          <button class="di-remove" data-action="remove" data-id="${itemKey}">✕</button>
+          <button type="button" class="di-remove" data-action="remove" data-id="${itemKey}">✕</button>
         `;
 
         if (item.slug) {
@@ -274,7 +279,7 @@ const App = (() => {
   function renderIngredientes(lista) {
     if (!lista) return;
     const items = lista.split(',').map((s) => s.trim()).filter(Boolean);
-    modalIng.innerHTML = items.map((i) => `<li>${i}</li>`).join('');
+    modalIng.innerHTML = items.map((i) => `<li>${escapeHtml(i)}</li>`).join('');
   }
 
   async function abrirModal(p) {
@@ -347,7 +352,7 @@ const App = (() => {
       const alcanzable = PASOS.slice(0, i).every(configValidoPaso);
       const sel = i < configPaso || (i === configPaso && configValidoPaso(paso)) ? 'done' : '';
       const active = i === configPaso ? 'active' : '';
-      return `<button class="config-step ${active} ${sel}" data-paso="${i}" ${alcanzable ? '' : 'disabled'}>
+      return `<button type="button" class="config-step ${active} ${sel}" data-paso="${i}" ${alcanzable ? '' : 'disabled'}>
         <span class="num">${i + 1}</span>${PASOS_TITULO[paso].replace('Elige el ', '').replace(' (opcional)', '')}
       </button>`;
     }).join('');
@@ -380,9 +385,9 @@ const App = (() => {
       const marcado = multiple
         ? (configSel.extra || []).some((id) => String(id) === String(op.id))
         : configSel[paso] && String(configSel[paso]) === String(op.id);
-      html += `<button class="config-option ${marcado ? 'selected' : ''}" data-id="${op.id}">
-        <span class="opt-name">${op.nombre}</span>
-        ${op.descripcion ? `<span class="opt-desc">${op.descripcion}</span>` : ''}
+      html += `<button type="button" class="config-option ${marcado ? 'selected' : ''}" data-id="${op.id}">
+        <span class="opt-name">${escapeHtml(op.nombre)}</span>
+        ${op.descripcion ? `<span class="opt-desc">${escapeHtml(op.descripcion)}</span>` : ''}
         <span class="opt-price ${precio === 0 ? 'gratis' : ''}">${precio === 0 ? 'Incluido' : `+ ${formatEUR(precio)}`}</span>
       </button>`;
     }
@@ -416,7 +421,7 @@ const App = (() => {
       }
     }
     configResumen.innerHTML = partes.length
-      ? `${partes.join(' · ')} — <strong>${formatEUR(total)}</strong>`
+      ? `${escapeHtml(partes.join(' · '))} — <strong>${formatEUR(total)}</strong>`
       : `Elige el tamaño para ver el precio — <strong>${formatEUR(0)}</strong>`;
     return total;
   }
@@ -506,7 +511,7 @@ const App = (() => {
       renderCategorias();
       renderGrid();
     } catch (err) {
-      grid.innerHTML = `<p style="grid-column:1/-1;text-align:center;color:var(--vino)">No se pudieron cargar los productos: ${err.message}</p>`;
+      grid.innerHTML = `<p style="grid-column:1/-1;text-align:center;color:var(--vino)">No se pudieron cargar los productos: ${escapeHtml(err.message)}</p>`;
       notify('No se pudieron cargar los productos. Inténtalo de nuevo más tarde.');
     }
 

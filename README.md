@@ -23,12 +23,20 @@ bakerycloud/
 ├── backend/                    # REST API Node.js/Express
 │   ├── src/
 │   │   ├── config/             # env, conexión BD
-│   │   ├── middleware/         # resolución de tienda (tenant)
-│   │   ├── routes/             # /api/productos, /api/pedidos, /api/opciones, /api/contactos
+│   │   ├── middleware/         # resolución de tienda (tenant) + auth admin
+│   │   ├── routes/             # /api/productos, /api/pedidos, /api/opciones, /api/contactos, /api/admin
 │   │   └── app.js, server.js   # montaje de rutas + servidor
-│   └── tests/api.test.js       # suite de integración (node:test)
+│   ├── tests/                  # suites de integración (node:test)
+│   │   ├── api.test.js         # health, productos, pedidos, opciones, contactos
+│   │   ├── admin.test.js       # panel admin (login JWT, CRUD de stock, aislamiento)
+│   │   └── e2e.test.js         # Playwright (tienda + panel admin)
+│   └── src/app.js              # app Express (reutilizable por los tests)
 ├── frontend/                   # SPA vanilla con carrito y theming
 │   ├── index.html
+│   ├── admin/                  # panel de administración (login + edición de stock)
+│   │   ├── index.html
+│   │   ├── admin.js
+│   │   └── admin.css
 │   ├── src/
 │   │   ├── app.js              # lógica: grid, carrito, modal, configurador, toasts
 │   │   ├── store/cart.js       # carrito (LocalStorage, claves por configuración)
@@ -70,7 +78,8 @@ bakerycloud/
 - [x] Frontend SPA: catálogo dinámico, modal de detalle, carrito en LocalStorage
 - [x] Configurador "Construye tu tarta" (tamaño, altura, bizcocho, relleno, decoración, extras) con precio en vivo y snapshot JSONB en el pedido
 - [x] Formulario de contacto real (guarda consultas por tienda) + toasts de aviso en toda la página
-- [x] Suite de integración del backend: **15/15 tests** (`node --test`)
+- [x] Panel de administración (`/admin/`): login con JWT, selector de tienda y edición de stock/precio/disponibilidad en el catálogo completo
+- [x] Suite de integración del backend (health, productos, pedidos, opciones, contactos, admin) + tests E2E de Playwright
 - [ ] Docker Compose completo (API + frontend + BD)
 - [ ] AWS `eu-south-2` + CI/CD (semanas 7-8)
 - [ ] Cloudflare + lanzamiento (semanas 9-10)
@@ -117,6 +126,14 @@ Endpoints (el tenant se resuelve por cabecera `X-Tenant-Slug` en desarrollo):
 | POST | `/api/pedidos` | Crea un pedido `{ cliente: {nombre,email}, items: [{producto_id, cantidad, configuracion?}] }` |
 | GET | `/api/contactos` | Consultas del formulario de contacto de la tienda activa |
 | POST | `/api/contactos` | Guarda una consulta `{ nombre, email, mensaje }` |
+| POST | `/api/admin/login` | Login admin con `ADMIN_PASSWORD` → JWT (cabecera `X-Tenant-Slug` elige la tienda) |
+| GET | `/api/admin/tiendas` | Lista las tiendas del sistema (requiere token) |
+| GET | `/api/admin/productos` | Catálogo completo de la tienda activa (requiere token) |
+| PATCH | `/api/admin/productos/:id` | Actualiza stock, precio, disponibilidad o nombre (requiere token) |
+
+> El panel admin vive en `http://localhost:3000/admin/` y guarda el JWT en
+> LocalStorage. Solo edita la tienda seleccionada (RLS): los productos de otras
+> tiendas son invisibles para la API admin.
 
 ### Configurador de tartas (frontend)
 
@@ -126,5 +143,18 @@ La tarjeta **"Construye tu tarta"** abre un asistente de 6 pasos (tamaño, altur
 
 ```bash
 cd backend
-npm test    # 15 tests de integración (health, productos, pedidos, opciones, contactos)
+npm test          # toda la suite de integración (health, productos, pedidos, opciones, contactos, admin)
+npm run test:api  # solo api.test.js + admin.test.js
+npm run test:admin# solo admin.test.js
+npm run test:e2e  # Playwright (requiere el servidor en :3000 y Chromium descargado)
 ```
+
+Configuración para el panel admin en `.env`:
+
+```
+ADMIN_PASSWORD=super-secreto
+ADMIN_SECRET=clave-firma-jwt
+```
+
+Si faltan, las rutas `/api/admin` responden **503** (panel no disponible) y los
+tests de login se marcan como fallidos/saltados.
