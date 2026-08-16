@@ -3,6 +3,18 @@
 Registro de todo lo que se sube al repositorio en cada `git push`.
 Cada entrada indica qué funcionalidad se añadió y cómo usarla.
 
+## [0.8.0] - 2026-08-16 — Panel admin: pedidos, contactos y gestión de productos
+
+### Funcionalidad añadida
+- **`GET /api/admin/pedidos`**: lista los pedidos de la tienda activa con cliente (nombre/email/teléfono) y sus líneas (producto, cantidad, precio y configuración JSONB), ordenados por fecha.
+- **`GET /api/admin/contactos`**: lista las consultas del formulario de contacto de la tienda activa.
+- **`POST /api/admin/productos`**: crea un producto. El slug se autogenera desde el nombre (garantizando unicidad) y la categoría se crea automáticamente si no existe (por defecto "General").
+- **`DELETE /api/admin/productos/:id`**: elimina un producto; devuelve **409** si tiene pedidos asociados (protección de la FK) y 404 si no existe o es de otra tienda.
+- **Panel admin**: nuevas pestañas **Pedidos** y **Contactos**, formulario "Añadir producto nuevo" y botón **Eliminar** con confirmación en cada fila.
+- **Tests**: suite completa **51/51** (40 integración + 11 E2E). Nuevos tests de creación/borrado (incluye 409 y aislamiento RLS), pedidos y contactos, más un E2E que crea un producto desde el navegador.
+
+**Cómo usarlo:** entra en `http://localhost:3000/admin/`, elige la tienda y usa las pestañas Productos / Pedidos / Contactos. El formulario "Añadir producto nuevo" crea la categoría sola si no existe.
+
 ## [0.7.0] - 2026-08-16 — Edición de ingredientes y contenido de la portada
 
 ### Funcionalidad añadida

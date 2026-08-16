@@ -25,6 +25,10 @@ const AdminApp = (() => {
   const loginMsg = $('#admin-login-msg');
   const contenidoCampos = $('#contenido-campos');
   const contenidoMsg = $('#contenido-msg');
+  const pedidosTbody = $('#pedidos-tbody');
+  const pedidosMsg = $('#pedidos-msg');
+  const contactosTbody = $('#contactos-tbody');
+  const contactosMsg = $('#contactos-msg');
 
   const escapeHtml = (s) =>
     String(s ?? '').replace(/[&<>"']/g, (c) => ({
@@ -33,6 +37,8 @@ const AdminApp = (() => {
 
   let productos = [];
   let valoresContenido = {};
+  let pedidos = [];
+  let contactos = [];
 
   const token = () => localStorage.getItem(TOKEN_KEY);
   const tenantSlug = () => localStorage.getItem(TENANT_KEY) || 'kokorocakes';
@@ -97,12 +103,18 @@ const AdminApp = (() => {
         <td><input type="number" class="edit-precio" step="0.01" min="0" value="${p.precio}" aria-label="Precio"></td>
         <td><input type="number" class="edit-stock" step="1" min="0" value="${p.stock}" aria-label="Stock"></td>
         <td><input type="checkbox" class="edit-disp" ${p.disponible ? 'checked' : ''} aria-label="Disponible"></td>
-        <td><button type="button" class="save-btn" data-i="${i}">Guardar</button></td>
+        <td>
+          <button type="button" class="save-btn" data-i="${i}">Guardar</button>
+          <button type="button" class="delete-btn" data-i="${i}" aria-label="Eliminar producto">Eliminar</button>
+        </td>
       </tr>
     `).join('');
 
     tbody.querySelectorAll('.save-btn').forEach((btn) => {
       btn.addEventListener('click', () => guardarFila(btn));
+    });
+    tbody.querySelectorAll('.delete-btn').forEach((btn) => {
+      btn.addEventListener('click', () => eliminarFila(btn));
     });
   }
 
@@ -125,13 +137,127 @@ const AdminApp = (() => {
     btn.disabled = true;
     try {
       const guardado = await request(`/api/admin/productos/${id}`, { method: 'PATCH', body });
-      if (guardado.disponible) p.stock = guardado.stock;
+      Object.assign(p, {
+        nombre: guardado.nombre,
+        descripcion: guardado.descripcion,
+        ingredientes: guardado.ingredientes,
+        precio: guardado.precio,
+        stock: guardado.stock,
+        disponible: guardado.disponible,
+      });
       setMsg(msg, `Guardado: ${guardado.nombre} (stock ${guardado.stock}, precio ${guardado.precio} €).`, true);
       render();
     } catch (err) {
       setMsg(msg, `No se pudo guardar: ${err.message}`);
       btn.disabled = false;
     }
+  }
+
+  async function eliminarFila(btn) {
+    const tr = btn.closest('tr');
+    const id = tr.dataset.id;
+    const p = productos[Number(btn.dataset.i)];
+    if (!confirm(`¿Eliminar "${p.nombre}"? Esta acción no se puede deshacer.`)) return;
+    btn.disabled = true;
+    try {
+      await request(`/api/admin/productos/${id}`, { method: 'DELETE' });
+      productos = productos.filter((x) => x.id !== id);
+      setMsg(msg, `Producto "${p.nombre}" eliminado.`, true);
+      render();
+    } catch (err) {
+      setMsg(msg, `No se pudo eliminar: ${err.message}`);
+      btn.disabled = false;
+    }
+  }
+
+  async function crearProducto() {
+    const body = {
+      nombre: $('#np-nombre').value.trim(),
+      slug: $('#np-slug').value.trim() || undefined,
+      categoria: $('#np-categoria').value.trim() || undefined,
+      precio: Number($('#np-precio').value),
+      stock: Number($('#np-stock').value),
+      disponible: $('#np-disponible').checked,
+      descripcion: $('#np-desc').value,
+      ingredientes: $('#np-ing').value,
+    };
+    if (!body.nombre) {
+      setMsg(msg, 'El nombre es obligatorio.');
+      return;
+    }
+    const btn = $('#producto-form button[type="submit"]');
+    btn.disabled = true;
+    try {
+      const creado = await request('/api/admin/productos', { method: 'POST', body });
+      $('#producto-form').reset();
+      $('#np-disponible').checked = true;
+      $('#nuevo-producto').removeAttribute('open');
+      productos.push(creado);
+      setMsg(msg, `Producto "${creado.nombre}" creado.`, true);
+      render();
+    } catch (err) {
+      setMsg(msg, `No se pudo crear: ${err.message}`);
+      btn.disabled = false;
+    }
+  }
+
+  async function cargarPedidos() {
+    const data = await request('/api/admin/pedidos');
+    pedidos = data.pedidos;
+    renderPedidos();
+    setMsg(pedidosMsg, `${pedidos.length} pedidos`, true);
+  }
+
+  function formatearFecha(iso) {
+    return new Date(iso).toLocaleString('es-ES', {
+      day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
+    });
+  }
+
+  function renderPedidos() {
+    if (pedidos.length === 0) {
+      pedidosTbody.innerHTML = '<tr><td colspan="5">No hay pedidos en esta tienda.</td></tr>';
+      return;
+    }
+    pedidosTbody.innerHTML = pedidos.map((o) => {
+      const cliente = o.cliente || {};
+      const productosTexto = o.items
+        .map((it) => `${escapeHtml(it.nombre)} ×${it.cantidad}`)
+        .join('<br>');
+      return `
+        <tr>
+          <td>${escapeHtml(formatearFecha(o.created_at))}</td>
+          <td>
+            <div class="p-nombre">${escapeHtml(cliente.nombre || '—')}</div>
+            <a href="mailto:${escapeHtml(cliente.email || '')}" class="p-email">${escapeHtml(cliente.email || '')}</a>
+          </td>
+          <td>${productosTexto}</td>
+          <td><span class="estado estado-${escapeHtml(o.estado)}">${escapeHtml(o.estado)}</span></td>
+          <td>${Number(o.total).toFixed(2)} €</td>
+        </tr>`;
+    }).join('');
+  }
+
+  async function cargarContactos() {
+    const data = await request('/api/admin/contactos');
+    contactos = data.contactos;
+    renderContactos();
+    setMsg(contactosMsg, `${contactos.length} consultas`, true);
+  }
+
+  function renderContactos() {
+    if (contactos.length === 0) {
+      contactosTbody.innerHTML = '<tr><td colspan="4">No hay consultas de contacto.</td></tr>';
+      return;
+    }
+    contactosTbody.innerHTML = contactos.map((c) => `
+      <tr>
+        <td>${escapeHtml(formatearFecha(c.created_at))}</td>
+        <td class="p-nombre">${escapeHtml(c.nombre)}</td>
+        <td><a href="mailto:${escapeHtml(c.email)}" class="p-email">${escapeHtml(c.email)}</a></td>
+        <td>${escapeHtml(c.mensaje)}</td>
+      </tr>
+    `).join('');
   }
 
   async function cargarContenido() {
@@ -178,6 +304,8 @@ const AdminApp = (() => {
         document.querySelectorAll('.admin-tab').forEach((b) => b.classList.toggle('active', b === btn));
         const tab = btn.dataset.tab;
         $('#panel-productos').hidden = tab !== 'productos';
+        $('#panel-pedidos').hidden = tab !== 'pedidos';
+        $('#panel-contactos').hidden = tab !== 'contactos';
         $('#panel-contenido').hidden = tab !== 'contenido';
       });
     });
@@ -228,6 +356,11 @@ const AdminApp = (() => {
       guardarContenido();
     });
 
+    $('#producto-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      crearProducto();
+    });
+
     $('#admin-logout').addEventListener('click', () => {
       localStorage.removeItem(TOKEN_KEY);
       mostrarLogin();
@@ -251,7 +384,7 @@ const AdminApp = (() => {
   }
 
   function recargarTodo() {
-    return Promise.all([cargarProductos(), cargarContenido()]);
+    return Promise.all([cargarProductos(), cargarContenido(), cargarPedidos(), cargarContactos()]);
   }
 
   document.addEventListener('DOMContentLoaded', init);

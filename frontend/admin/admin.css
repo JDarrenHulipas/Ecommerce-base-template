@@ -152,6 +152,25 @@
   cursor: wait;
 }
 
+.admin-table .delete-btn {
+  padding: 0.4rem 0.7rem;
+  border: 1px solid #c65d5d;
+  border-radius: 6px;
+  background: transparent;
+  color: #b3261e;
+  cursor: pointer;
+}
+
+.admin-table .delete-btn:hover {
+  background: #b3261e;
+  color: #fff;
+}
+
+.admin-table .delete-btn:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+
 .admin-table .stock-low {
   color: #b3261e;
   font-weight: 600;
@@ -243,4 +262,104 @@
   border-radius: 6px;
   font: inherit;
   resize: vertical;
+}
+
+/* --- Nuevo producto --- */
+.nuevo-producto {
+  margin-bottom: 1rem;
+  border: 1px solid var(--beige, #e6d8cf);
+  border-radius: 12px;
+  background: #fff;
+}
+
+.nuevo-producto summary {
+  padding: 0.7rem 1rem;
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--vino, #6b2d3a);
+}
+
+.producto-form {
+  padding: 0 1rem 1rem;
+}
+
+.producto-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.8rem;
+  margin-bottom: 1rem;
+}
+
+.producto-form-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.85rem;
+  color: var(--vino, #6b2d3a);
+}
+
+.producto-form-grid .producto-full {
+  grid-column: 1 / -1;
+}
+
+.producto-form-grid .producto-check {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.producto-form-grid input,
+.producto-form-grid textarea {
+  padding: 0.5rem 0.7rem;
+  border: 1px solid #d9c4b8;
+  border-radius: 8px;
+  font: inherit;
+  resize: vertical;
+}
+
+.producto-form .save-btn {
+  padding: 0.55rem 1.2rem;
+  border: none;
+  border-radius: 8px;
+  background: var(--vino, #6b2d3a);
+  color: #fff;
+  cursor: pointer;
+}
+
+.producto-form .save-btn:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+
+/* --- Pedidos y contactos --- */
+.p-email {
+  font-size: 0.8rem;
+  color: var(--vino, #6b2d3a);
+  text-decoration: none;
+}
+
+.p-email:hover {
+  text-decoration: underline;
+}
+
+.estado {
+  display: inline-block;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: capitalize;
+  background: #f3e6dd;
+  color: var(--vino, #6b2d3a);
+}
+
+.estado-cancelado {
+  background: #f9dddd;
+  color: #b3261e;
+}
+
+.estado-entregado,
+.estado-enviado {
+  background: #ddeedd;
+  color: #1d7a3c;
 }

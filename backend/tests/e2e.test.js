@@ -366,3 +366,45 @@ test('E2E: el panel admin edita el contenido de la portada y se refleja en la ti
     await context.close();
   }
 });
+
+test('E2E: el panel admin crea un producto nuevo desde el formulario', { timeout: 120000 }, async (t) => {
+  if (!ready) { t.skip(skipReason); return; }
+  if (!adminPassword) { t.skip('ADMIN_PASSWORD no configurado en .env'); return; }
+
+  const { context, page } = await nuevaPagina();
+  const nombre = `E2E Producto ${Date.now()}`;
+  try {
+    await page.goto(BASE + '/admin/', { waitUntil: 'domcontentloaded' });
+    await page.fill('#admin-password', adminPassword);
+    await page.click('#admin-login-form button[type="submit"]');
+    await page.waitForSelector('#admin-panel:not([hidden])');
+
+    await page.click('#nuevo-producto summary');
+    await page.fill('#np-nombre', nombre);
+    await page.fill('#np-precio', '12.5');
+    await page.fill('#np-stock', '3');
+    await page.fill('#np-categoria', 'Tartas E2E');
+    await page.click('#producto-form button[type="submit"]');
+
+    await page.waitForFunction(
+      (valor) => /creado/.test(document.querySelector('#admin-msg')?.textContent || '') && document.querySelector('#admin-msg').textContent.includes(valor),
+      nombre
+    );
+
+    // El producto aparece en la tabla
+    const row = page.locator(`#admin-tbody tr:has(.p-nombre:text-is("${nombre}"))`);
+    await row.waitFor();
+    const id = await row.getAttribute('data-id');
+    assert.ok(id, 'el producto creado debería tener id');
+
+    // Limpieza vía API
+    const token = await page.evaluate(() => localStorage.getItem('bakery_admin_token'));
+    const del = await fetch(BASE + `/api/admin/productos/${id}`, {
+      method: 'DELETE',
+      headers: { 'X-Tenant-Slug': TENANT, Authorization: `Bearer ${token}` },
+    });
+    assert.equal(del.status, 200, 'debería eliminarse el producto de prueba');
+  } finally {
+    await context.close();
+  }
+});

@@ -236,3 +236,205 @@ test('admin: PATCH no puede tocar productos de otra tienda', async () => {
   });
   assert.equal(status, 404, 'un producto de otra tienda debe ser invisible');
 });
+
+// ---------------------------------------------------------------------------
+// POST / DELETE productos
+// ---------------------------------------------------------------------------
+
+test('admin: POST /productos crea un producto con slug y categoría automáticos', async () => {
+  const nombre = `Tarta test ${Date.now()}`;
+  const { status, body } = await api('/api/admin/productos', {
+    method: 'POST',
+    tenant: T.maribel,
+    auth: token,
+    body: {
+      nombre,
+      categoria: 'Nueva categoría test',
+      precio: 19.9,
+      stock: 4,
+      descripcion: 'Producto creado por el test',
+      ingredientes: 'Harina, azúcar, huevos',
+    },
+  });
+  assert.equal(status, 201);
+  assert.equal(body.nombre, nombre);
+  assert.ok(body.id, 'debería devolver el id');
+  assert.equal(Number(body.precio), 19.9);
+  assert.equal(Number(body.stock), 4);
+  assert.match(body.slug, /^tarta-test-\d+$/, 'el slug se autogenera desde el nombre');
+
+  // Aparece en el listado con su categoría
+  const lista = await api('/api/admin/productos', { tenant: T.maribel, auth: token });
+  const creado = lista.body.productos.find((p) => p.id === body.id);
+  assert.ok(creado, 'el producto debería aparecer en el listado');
+  assert.equal(creado.categoria, 'Nueva categoría test');
+
+  // Es invisible para otra tienda (RLS)
+  const koko = await api('/api/admin/productos', { tenant: T.koko, auth: token });
+  assert.ok(!koko.body.productos.some((p) => p.id === body.id), 'otra tienda no debe ver el producto');
+
+  // Limpieza
+  const del = await api(`/api/admin/productos/${body.id}`, { method: 'DELETE', tenant: T.maribel, auth: token });
+  assert.equal(del.status, 200);
+});
+
+test('admin: POST /productos valida los datos', async () => {
+  const casos = [
+    { nombre: '' },
+    {},
+    { nombre: 'X', precio: -1 },
+    { nombre: 'X', stock: 1.5 },
+    { nombre: 'X', disponible: 'si' },
+  ];
+  for (const body of casos) {
+    const { status } = await api('/api/admin/productos', {
+      method: 'POST',
+      tenant: T.maribel,
+      auth: token,
+      body,
+    });
+    assert.equal(status, 400, `debería rechazar: ${JSON.stringify(body)}`);
+  }
+});
+
+test('admin: DELETE /productos no puede borrar productos de otra tienda', async () => {
+  const { status, body } = await api('/api/admin/productos', {
+    method: 'POST',
+    tenant: T.maribel,
+    auth: token,
+    body: { nombre: `Prueba aislamiento ${Date.now()}`, precio: 5, stock: 1 },
+  });
+  assert.equal(status, 201);
+
+  // Intentar borrarlo con la tienda de koko: RLS lo oculta -> 404
+  const cross = await api(`/api/admin/productos/${body.id}`, { method: 'DELETE', auth: token });
+  assert.equal(cross.status, 404);
+
+  const del = await api(`/api/admin/productos/${body.id}`, {
+    method: 'DELETE',
+    tenant: T.maribel,
+    auth: token,
+  });
+  assert.equal(del.status, 200);
+});
+
+test('admin: DELETE /productos devuelve 409 si el producto tiene pedidos', async () => {
+  // Crea un producto y un pedido que lo use
+  const { body: prod } = await api('/api/admin/productos', {
+    method: 'POST',
+    tenant: T.maribel,
+    auth: token,
+    body: { nombre: `Tarta con pedido ${Date.now()}`, precio: 10, stock: 5 },
+  });
+  const email = `pedido-borrar-${Date.now()}@example.com`;
+  const { body: pedido } = await api('/api/pedidos', {
+    method: 'POST',
+    tenant: T.maribel,
+    body: {
+      cliente: { nombre: 'Test Borrado', email },
+      items: [{ producto_id: prod.id, cantidad: 1 }],
+    },
+  });
+  assert.ok(pedido.pedido_id, 'debería crearse el pedido de referencia');
+
+  const del = await api(`/api/admin/productos/${prod.id}`, {
+    method: 'DELETE',
+    tenant: T.maribel,
+    auth: token,
+  });
+  assert.equal(del.status, 409);
+  assert.match(del.body.error, /pedidos/i);
+
+  // Limpieza: pedido (cascada de líneas) -> cliente -> producto
+  const client = new Client({ connectionString: databaseUrl });
+  await client.connect();
+  try {
+    await client.query('SELECT app.set_tenant(2)');
+    await client.query('DELETE FROM pedidos WHERE id = $1', [pedido.pedido_id]);
+    await client.query('DELETE FROM clientes WHERE email = $1', [email]);
+    await client.query('DELETE FROM productos WHERE id = $1', [prod.id]);
+  } finally {
+    await client.end();
+  }
+});
+
+test('admin: DELETE /productos inexistente devuelve 404', async () => {
+  const { status } = await api('/api/admin/productos/999999', { method: 'DELETE', auth: token });
+  assert.equal(status, 404);
+});
+
+// ---------------------------------------------------------------------------
+// GET /api/admin/pedidos y /api/admin/contactos
+// ---------------------------------------------------------------------------
+
+test('admin: GET /pedidos lista los pedidos con cliente e items', async () => {
+  // Se crea un pedido real vía la API pública de maribel
+  const email = `admin-pedidos-${Date.now()}@example.com`;
+  const { body: prodList } = await api('/api/admin/productos', { tenant: T.maribel, auth: token });
+  const prod = prodList.productos.find((p) => p.slug === 'mantecado-canelas');
+  assert.ok(prod, 'producto de referencia no encontrado');
+
+  const { body: pedido } = await api('/api/pedidos', {
+    method: 'POST',
+    tenant: T.maribel,
+    body: {
+      cliente: { nombre: 'Cliente Admin', email },
+      items: [{ producto_id: prod.id, cantidad: 2 }],
+    },
+  });
+  assert.ok(pedido.pedido_id, 'debería crearse el pedido');
+
+  const { status, body } = await api('/api/admin/pedidos', { tenant: T.maribel, auth: token });
+  assert.equal(status, 200);
+  assert.equal(body.tienda, T.maribel);
+  const encontrado = body.pedidos.find((o) => o.id === pedido.pedido_id);
+  assert.ok(encontrado, 'el pedido creado debería aparecer');
+  assert.equal(encontrado.cliente.email, email);
+  assert.equal(encontrado.estado, 'pendiente');
+  assert.ok(Array.isArray(encontrado.items) && encontrado.items.length === 1);
+  assert.equal(encontrado.items[0].nombre, prod.nombre);
+  assert.equal(encontrado.items[0].cantidad, 2);
+  assert.equal(Number(encontrado.total), Number(prod.precio) * 2 + Number(encontrado.envio));
+
+  // Limpieza
+  const client = new Client({ connectionString: databaseUrl });
+  await client.connect();
+  try {
+    await client.query('SELECT app.set_tenant(2)');
+    await client.query('DELETE FROM pedidos WHERE id = $1', [pedido.pedido_id]);
+    await client.query('DELETE FROM clientes WHERE email = $1', [email]);
+  } finally {
+    await client.end();
+  }
+});
+
+test('admin: GET /contactos lista las consultas de la tienda activa', async () => {
+  const email = `admin-contactos-${Date.now()}@example.com`;
+  const mensaje = 'Consulta de prueba para el panel admin';
+  await api('/api/contactos', {
+    method: 'POST',
+    tenant: T.maribel,
+    body: { nombre: 'Consulta Admin', email, mensaje },
+  });
+
+  const { status, body } = await api('/api/admin/contactos', { tenant: T.maribel, auth: token });
+  assert.equal(status, 200);
+  assert.equal(body.tienda, T.maribel);
+  const encontrada = body.contactos.find((c) => c.email === email);
+  assert.ok(encontrada, 'la consulta debería aparecer');
+  assert.equal(encontrada.mensaje, mensaje);
+
+  // Aislamiento: koko no la ve
+  const koko = await api('/api/admin/contactos', { tenant: T.koko, auth: token });
+  assert.ok(!koko.body.contactos.some((c) => c.email === email), 'koko no debe ver consultas de maribel');
+
+  // Limpieza
+  const client = new Client({ connectionString: databaseUrl });
+  await client.connect();
+  try {
+    await client.query('SELECT app.set_tenant(2)');
+    await client.query('DELETE FROM contactos WHERE email = $1', [email]);
+  } finally {
+    await client.end();
+  }
+});

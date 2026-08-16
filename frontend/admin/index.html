@@ -36,10 +36,45 @@
 
       <nav class="admin-tabs" role="tablist">
         <button type="button" class="admin-tab active" data-tab="productos">Productos</button>
+        <button type="button" class="admin-tab" data-tab="pedidos">Pedidos</button>
+        <button type="button" class="admin-tab" data-tab="contactos">Contactos</button>
         <button type="button" class="admin-tab" data-tab="contenido">Contenido de la portada</button>
       </nav>
 
       <div class="admin-tabpanel" id="panel-productos">
+        <details class="nuevo-producto" id="nuevo-producto">
+          <summary>+ Añadir producto nuevo</summary>
+          <form class="producto-form" id="producto-form">
+            <div class="producto-form-grid">
+              <label>Nombre *
+                <input type="text" id="np-nombre" required aria-label="Nombre del producto">
+              </label>
+              <label>Slug (opcional, auto desde el nombre)
+                <input type="text" id="np-slug" aria-label="Slug del producto">
+              </label>
+              <label>Categoría
+                <input type="text" id="np-categoria" aria-label="Categoría del producto">
+              </label>
+              <label>Precio (€)
+                <input type="number" id="np-precio" step="0.01" min="0" value="0" aria-label="Precio">
+              </label>
+              <label>Stock
+                <input type="number" id="np-stock" step="1" min="0" value="0" aria-label="Stock">
+              </label>
+              <label class="producto-check">
+                <input type="checkbox" id="np-disponible" checked aria-label="Disponible">
+                Disponible
+              </label>
+              <label class="producto-full">Descripción
+                <input type="text" id="np-desc" aria-label="Descripción del producto">
+              </label>
+              <label class="producto-full">Ingredientes
+                <textarea id="np-ing" rows="2" aria-label="Ingredientes del producto"></textarea>
+              </label>
+            </div>
+            <button type="submit" class="save-btn">Crear producto</button>
+          </form>
+        </details>
         <div class="table-wrap">
           <table class="admin-table" id="admin-table">
             <thead>
@@ -54,6 +89,41 @@
               </tr>
             </thead>
             <tbody id="admin-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="admin-tabpanel" id="panel-pedidos" hidden>
+        <p class="admin-msg" id="pedidos-msg" role="status"></p>
+        <div class="table-wrap">
+          <table class="admin-table" id="pedidos-table">
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Cliente</th>
+                <th>Productos</th>
+                <th>Estado</th>
+                <th>Total (€)</th>
+              </tr>
+            </thead>
+            <tbody id="pedidos-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="admin-tabpanel" id="panel-contactos" hidden>
+        <p class="admin-msg" id="contactos-msg" role="status"></p>
+        <div class="table-wrap">
+          <table class="admin-table" id="contactos-table">
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Nombre</th>
+                <th>Email</th>
+                <th>Mensaje</th>
+              </tr>
+            </thead>
+            <tbody id="contactos-tbody"></tbody>
           </table>
         </div>
       </div>
