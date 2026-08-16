@@ -130,6 +130,26 @@
     </div>
   </div>
 
+  <!-- Configurador de tarta personalizada -->
+  <div class="modal-overlay" id="config-overlay" hidden></div>
+  <div class="modal modal-config" id="config-modal" role="dialog" aria-modal="true" aria-hidden="true">
+    <button class="modal-close" id="config-close" aria-label="Cerrar">×</button>
+    <div class="config-head">
+      <span class="modal-cat">Tarta personalizada</span>
+      <h2 class="modal-name">Construye tu tarta</h2>
+      <div class="config-steps" id="config-steps"></div>
+    </div>
+    <div class="config-body" id="config-body"></div>
+    <div class="config-foot">
+      <div class="config-resumen" id="config-resumen"></div>
+      <div class="config-nav">
+        <button class="btn btn-ghost" id="config-prev" hidden>Anterior</button>
+        <button class="btn btn-primary" id="config-next">Siguiente</button>
+        <button class="btn btn-primary" id="config-add" hidden>Añadir al carrito</button>
+      </div>
+    </div>
+  </div>
+
   <script src="/src/store/cart.js"></script>
   <script src="/src/utils/api.js"></script>
   <script src="/src/app.js"></script>

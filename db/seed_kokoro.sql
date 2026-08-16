@@ -94,14 +94,70 @@ INSERT INTO productos (tienda_id, categoria_id, slug, nombre, descripcion, ingre
  'Bizcocho de vainilla, dulce de leche, galletas Oreo, mantequilla, huevos, harina de trigo, azúcar.', 52.00, 2, TRUE),
 (1, (SELECT id FROM categorias WHERE tienda_id = 1 AND nombre = 'Tartas personalizadas'),
  'tarta-encargo', 'Tarta personalizada a medida',
- 'Cuéntanos tu idea y la hacemos realidad. Diseños únicos estilo vintage y coquette, decorados con buttercream de merengue suizo. Encargos con 48h de antelación.',
- 'Según tu encargo: bizcocho a elegir (chocolate o vainilla), buttercream de merengue suizo y decoración a medida.', 60.00, 3, TRUE);
+ 'Construye tu tarta: elige tamaño, bizcocho, relleno y decoración. Diseños únicos estilo vintage y coquette.',
+ 'Según tu combinación: bizcocho, relleno y decoración a elegir en el configurador.', 0.00, 99, TRUE);
 
 -- Los productos que no tienen foto publicada en el perfil se dejan
 -- en la BD pero marcados como no disponibles (no se muestran en la web).
 UPDATE productos SET disponible = FALSE WHERE tienda_id = 1 AND slug IN
 ('bento-milky-heaven', 'bento-lemon-berry', 'tin-lotus-dream',
- 'mini-milky-heaven', 'tarta-vainilla-lotus', 'tarta-encargo');
+ 'mini-milky-heaven', 'tarta-vainilla-lotus');
+
+-- ------------------------------------------------------------
+-- Opciones del configurador (catálogo oficial del PDF "Catalogo ESP")
+-- Precios publicados: tamaños con precio base; el resto son deltas.
+-- ------------------------------------------------------------
+DELETE FROM opciones WHERE tienda_id = 1;
+
+INSERT INTO opciones (tienda_id, grupo, nombre, descripcion, precio, posicion) VALUES
+-- Tamaños (precio base de la tarta)
+(1, 'tamano',     'Small Regular (15 cm)',      'Tarta de 15 cm, altura regular.',          30.00, 1),
+(1, 'tamano',     'Small Tall (15 cm)',         'Tarta de 15 cm, alta.',                    45.00, 2),
+(1, 'tamano',     'Medium Regular (20 cm)',     'Tarta de 20 cm, altura regular.',          40.00, 3),
+(1, 'tamano',     'Medium Tall (20 cm)',        'Tarta de 20 cm, alta.',                    55.00, 4),
+(1, 'tamano',     'Large Regular (25 cm)',      'Tarta de 25 cm, altura regular.',          50.00, 5),
+(1, 'tamano',     'Large Tall (25 cm)',         'Tarta de 25 cm, alta.',                    65.00, 6),
+
+-- Bizcochos (sabor de la base)
+(1, 'bizcocho',   'Vainilla',                   'Bizcocho esponjoso de vainilla.',          0.00, 1),
+(1, 'bizcocho',   'Chocolate',                  'Bizcocho de chocolate.',                   0.00, 2),
+(1, 'bizcocho',   'Fresa',                      'Bizcocho de fresa.',                       0.00, 3),
+(1, 'bizcocho',   'Cookies',                    'Bizcocho con trozos de cookies.',          3.00, 4),
+(1, 'bizcocho',   'Tres Leches',                'Bizcocho bañado en tres leches.',          3.50, 5),
+(1, 'bizcocho',   'Matcha',                     'Bizcocho de té matcha.',                   5.00, 6),
+
+-- Rellenos
+(1, 'relleno',    'Mermelada de fresa',         'Relleno de mermelada de fresa.',           0.00, 1),
+(1, 'relleno',    'Ganache de chocolate',       'Ganache de chocolate blanco o negro.',     0.00, 2),
+(1, 'relleno',    'Queso crema',                'Relleno cremoso de queso crema.',          0.00, 3),
+(1, 'relleno',    'Crema de limón',             'Crema de limón fresca.',                   3.00, 4),
+(1, 'relleno',    'Crema pastelera',            'Crema pastelera clásica.',                 3.00, 5),
+(1, 'relleno',    'Caramelo',                   'Relleno de caramelo.',                     3.00, 6),
+(1, 'relleno',    'Dulce de leche',             'Relleno de dulce de leche.',               4.00, 7),
+(1, 'relleno',    'Lotus biscott',              'Crema de galleta Lotus.',                  4.00, 8),
+
+-- Decoración (estilos y extras decorativos)
+(1, 'decoracion', 'Classic',                    'Decoración en la parte superior e inferior.',        0.00, 1),
+(1, 'decoracion', 'Full Vintage',               'Diseño vintage completo (envía tu foto de referencia).', 4.00, 2),
+(1, 'decoracion', 'Texto',                      'Texto personalizado en frosting o chocolate.',       3.00, 3),
+(1, 'decoracion', 'Purpurina',                  'Brillo comestible solo en la parte superior.',       8.00, 4),
+(1, 'decoracion', 'Full Purpurina',             'Pastel cubierto completamente de purpurina.',       10.00, 5),
+(1, 'decoracion', 'Cerezas',                    'Cerezas decorativas.',                               5.00, 6),
+(1, 'decoracion', 'Cerezas de purpurina',       'Cerezas bañadas en purpurina.',                      8.00, 7),
+(1, 'decoracion', 'Texto de perlas',            'Texto formado con perlas.',                          4.00, 8),
+(1, 'decoracion', 'Perlas',                     'Pastel decorado con unas cuantas perlas.',          4.00, 9),
+(1, 'decoracion', 'Cadena de perlas',           'Cadena completa de perlas.',                         10.00, 10),
+(1, 'decoracion', 'Imagen personalizada',       'Imagen comestible personalizada en la parte superior.', 12.00, 11),
+(1, 'decoracion', 'Burnaway',                   'Tarta viral: la imagen frontal se quema y muestra otra.', 15.00, 12),
+(1, 'decoracion', 'Mariposas',                  'Mariposas decorativas.',                             10.00, 13),
+(1, 'decoracion', 'Lazos',                      'Lazos decorativos.',                                 5.00, 14),
+
+-- Extras (por unidad)
+(1, 'extra',      'Trozos de Oreo',             'Trozos de galleta Oreo.',                 2.50, 1),
+(1, 'extra',      'Trozos de Kit Kat',          'Trozos de Kit Kat.',                      2.50, 2),
+(1, 'extra',      'Trozos de galleta',          'Trozos de galleta.',                      2.50, 3),
+(1, 'extra',      'Trozos Kinder Bueno',        'Trozos de Kinder Bueno.',                 2.50, 4),
+(1, 'extra',      'Fruta fresca',               'Fresa, cereza, melocotón, mango o kiwi.', 2.50, 5);
 
 -- Restablece el tenant (sesión limpia)
 SELECT app.set_tenant(NULL);

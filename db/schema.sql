@@ -93,9 +93,31 @@ CREATE TABLE IF NOT EXISTS pedido_items (
     nombre_producto VARCHAR(150)  NOT NULL,                -- snapshot: no cambia si el producto cambia
     cantidad        INT           NOT NULL CHECK (cantidad > 0),
     precio_unitario NUMERIC(10,2) NOT NULL CHECK (precio_unitario >= 0),
+    configuracion   JSONB,                                 -- tartas personalizadas: opciones elegidas
     PRIMARY KEY (tienda_id, id),
     FOREIGN KEY (tienda_id, pedido_id)  REFERENCES pedidos (tienda_id, id) ON DELETE CASCADE,
     FOREIGN KEY (tienda_id, producto_id) REFERENCES productos (tienda_id, id)
+);
+
+-- ============================================================
+-- Opciones del configurador de tartas (catálogo de la tienda)
+-- Grupo 'tamano' define el PRECIO BASE; el resto son deltas.
+--   tamano    -> 1 elección (precio base, p.ej. Medium Regular 40 €)
+--   bizcocho  -> 1 elección (delta sobre el tamaño)
+--   relleno   -> 1 elección (delta)
+--   decoracion-> 1 elección (delta)
+--   extra     -> varias elecciones (delta por unidad)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS opciones (
+    id          BIGSERIAL,
+    tienda_id   INT           NOT NULL REFERENCES tiendas(id) ON DELETE CASCADE,
+    grupo       VARCHAR(40)   NOT NULL CHECK (grupo IN ('tamano','bizcocho','relleno','decoracion','extra')),
+    nombre      VARCHAR(120)  NOT NULL,
+    descripcion TEXT,
+    precio      NUMERIC(10,2) NOT NULL DEFAULT 0 CHECK (precio >= 0),
+    posicion    INT           NOT NULL DEFAULT 0,
+    PRIMARY KEY (tienda_id, id),
+    UNIQUE (tienda_id, grupo, nombre)
 );
 
 -- ============================================================
@@ -132,13 +154,14 @@ ALTER TABLE productos   ENABLE ROW LEVEL SECURITY;
 ALTER TABLE clientes    ENABLE ROW LEVEL SECURITY;
 ALTER TABLE pedidos     ENABLE ROW LEVEL SECURITY;
 ALTER TABLE pedido_items ENABLE ROW LEVEL SECURITY;
+ALTER TABLE opciones    ENABLE ROW LEVEL SECURITY;
 
 -- Política: SOLO se ven/escriben filas de la tienda activa de la sesión.
 -- La columna tienda_id coincide con app.current_tenant().
 DO $$
 DECLARE t TEXT;
 BEGIN
-    FOREACH t IN ARRAY ARRAY['categorias','productos','clientes','pedidos','pedido_items']
+    FOREACH t IN ARRAY ARRAY['categorias','productos','clientes','pedidos','pedido_items','opciones']
     LOOP
         EXECUTE format('CREATE POLICY tenant_isolation ON %I
                         USING (tienda_id = app.current_tenant())

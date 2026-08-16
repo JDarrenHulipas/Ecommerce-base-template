@@ -15,30 +15,42 @@ const CartStore = (() => {
 
   function add(producto, cantidad = 1) {
     const items = load();
-    const existing = items.find((i) => String(i.producto_id) === String(producto.id));
+    const pid = producto.producto_id ?? producto.id;
+    const key = producto.configuracion
+      ? `${pid}::${JSON.stringify(producto.configuracion)}`
+      : String(pid);
+    const existing = items.find((i) => i.key === key);
     if (existing) {
       existing.cantidad += cantidad;
     } else {
-      items.push({ producto_id: producto.id, cantidad, nombre: producto.nombre, precio: producto.precio, slug: producto.slug });
+      items.push({
+        key,
+        producto_id: pid,
+        cantidad,
+        nombre: producto.nombre,
+        precio: producto.precio,
+        slug: producto.slug,
+        configuracion: producto.configuracion || undefined,
+      });
     }
     save(items);
     return items;
   }
 
-  function setQty(producto_id, cantidad) {
+  function setQty(key, cantidad) {
     let items = load();
     if (cantidad <= 0) {
-      items = items.filter((i) => String(i.producto_id) !== String(producto_id));
+      items = items.filter((i) => i.key !== key);
     } else {
-      const item = items.find((i) => String(i.producto_id) === String(producto_id));
+      const item = items.find((i) => i.key === key);
       if (item) item.cantidad = cantidad;
     }
     save(items);
     return items;
   }
 
-  function remove(producto_id) {
-    const items = load().filter((i) => String(i.producto_id) !== String(producto_id));
+  function remove(key) {
+    const items = load().filter((i) => i.key !== key);
     save(items);
     return items;
   }

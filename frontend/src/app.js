@@ -19,10 +19,38 @@ const App = (() => {
   const modalIng = $('#modal-ing');
   const modalPrice = $('#modal-price');
   const modalAdd = $('#modal-add');
+  const configModal = $('#config-modal');
+  const configOverlay = $('#config-overlay');
+  const configBody = $('#config-body');
+  const configSteps = $('#config-steps');
+  const configResumen = $('#config-resumen');
+  const configPrev = $('#config-prev');
+  const configNext = $('#config-next');
+  const configAdd = $('#config-add');
 
   let productos = [];
   let categoriaActiva = 'todas';
   let productoActivo = null;
+
+  // Estado del configurador de tartas
+  const PASOS = ['tamano', 'bizcocho', 'relleno', 'decoracion', 'extra'];
+  const PASOS_TITULO = {
+    tamano: 'Elige el tamaño',
+    bizcocho: 'Elige el bizcocho',
+    relleno: 'Elige el relleno',
+    decoracion: 'Elige la decoración',
+    extra: 'Añade extras (opcional)',
+  };
+  const PASOS_HINT = {
+    tamano: 'Cada tamaño tiene un precio base. Los siguientes pasos suman extras.',
+    bizcocho: 'El sabor del bizcocho. Algunos tienen un pequeño suplemento.',
+    relleno: 'El relleno de tu tarta.',
+    decoracion: 'El estilo y la decoración. Puedes enviar tu foto de referencia al hacer el encargo.',
+    extra: 'Trozos, fruta fresca... selecciona todos los que quieras.',
+  };
+  let catalogo = null;   // { tarta_base, grupos }
+  let configSel = {};    // { tamano: id, bizcocho: id, relleno: id, decoracion: id, extra: [ids] }
+  let configPaso = 0;
 
   const formatEUR = (n) =>
     n.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' });
@@ -121,12 +149,16 @@ const App = (() => {
 
       card.querySelector('.btn-add').addEventListener('click', (e) => {
         e.stopPropagation();
+        if (esTartaBase(p)) { abrirConfig(); return; }
         CartStore.add(p);
         actualizarContador();
         abrirDrawer();
       });
 
-      card.addEventListener('click', () => abrirModal(p));
+      card.addEventListener('click', () => {
+        if (esTartaBase(p)) { abrirConfig(); return; }
+        abrirModal(p);
+      });
 
       grid.appendChild(card);
     }
@@ -146,25 +178,26 @@ const App = (() => {
       for (const item of items) {
         const div = document.createElement('div');
         div.className = 'drawer-item';
+        const itemKey = item.key ?? String(item.producto_id);
         div.innerHTML = `
-          <div class="di-thumb" data-thumb="${item.producto_id}"></div>
+          <div class="di-thumb" data-thumb="${itemKey}"></div>
           <div class="di-info">
             <div class="di-name">${item.nombre}</div>
             <div class="di-price">${formatEUR(item.precio)}</div>
           </div>
           <div class="di-qty">
-            <button data-action="decr" data-id="${item.producto_id}">−</button>
+            <button data-action="decr" data-id="${itemKey}">−</button>
             <span class="qty">${item.cantidad}</span>
-            <button data-action="incr" data-id="${item.producto_id}">+</button>
+            <button data-action="incr" data-id="${itemKey}">+</button>
           </div>
-          <button class="di-remove" data-action="remove" data-id="${item.producto_id}">✕</button>
+          <button class="di-remove" data-action="remove" data-id="${itemKey}">✕</button>
         `;
 
         if (item.slug) {
           fetch(`/img/${item.slug}.jpg`, { method: 'HEAD' })
             .then((res) => {
               if (res.ok) {
-                const t = div.querySelector(`[data-thumb="${item.producto_id}"]`);
+                const t = div.querySelector(`[data-thumb="${itemKey}"]`);
                 if (t) t.style.background = `url('/img/${item.slug}.jpg') center/cover no-repeat`;
               }
             })
@@ -173,15 +206,15 @@ const App = (() => {
 
         div.querySelectorAll('[data-action]').forEach((btn) => {
           btn.addEventListener('click', () => {
-            const id = btn.dataset.id;
+            const key = btn.dataset.id;
             const action = btn.dataset.action;
             if (action === 'incr') {
-              CartStore.setQty(id, CartStore.load().find((i) => String(i.producto_id) === id).cantidad + 1);
+              CartStore.setQty(key, CartStore.load().find((i) => (i.key ?? String(i.producto_id)) === key).cantidad + 1);
             } else if (action === 'decr') {
-              const item = CartStore.load().find((i) => String(i.producto_id) === id);
-              CartStore.setQty(id, item.cantidad - 1);
+              const item = CartStore.load().find((i) => (i.key ?? String(i.producto_id)) === key);
+              CartStore.setQty(key, item.cantidad - 1);
             } else {
-              CartStore.remove(id);
+              CartStore.remove(key);
             }
             renderDrawer();
             actualizarContador();
@@ -252,6 +285,175 @@ const App = (() => {
     productoActivo = null;
   }
 
+  // ---------- Configurador de tarta personalizada ----------
+
+  const opcionPorId = (id) => {
+    if (!catalogo) return null;
+    for (const grupo of Object.values(catalogo.grupos)) {
+      const op = grupo.find((o) => String(o.id) === String(id));
+      if (op) return op;
+    }
+    return null;
+  };
+
+  function esTartaBase(p) {
+    return catalogo && catalogo.tarta_base && String(p.id) === String(catalogo.tarta_base.id);
+  }
+
+  function calcularPrecioConfig() {
+    if (!configSel.tamano) return 0;
+    let total = Number(opcionPorId(configSel.tamano)?.precio || 0);
+    for (const campo of ['bizcocho', 'relleno', 'decoracion']) {
+      if (configSel[campo]) total += Number(opcionPorId(configSel[campo])?.precio || 0);
+    }
+    for (const id of configSel.extra || []) {
+      total += Number(opcionPorId(id)?.precio || 0);
+    }
+    return total;
+  }
+
+  function renderConfigSteps() {
+    configSteps.innerHTML = PASOS.map((paso, i) => {
+      const sel = i < configPaso || (i === configPaso && configValidoPaso(paso)) ? 'done' : '';
+      const active = i === configPaso ? 'active' : '';
+      return `<button class="config-step ${active} ${sel}" data-paso="${i}">
+        <span class="num">${i + 1}</span>${PASOS_TITULO[paso].replace('Elige el ', '').replace(' (opcional)', '')}
+      </button>`;
+    }).join('');
+    configSteps.querySelectorAll('[data-paso]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        configPaso = Number(btn.dataset.paso);
+        renderConfig();
+      });
+    });
+  }
+
+  function configValidoPaso(paso) {
+    const valor = configSel[paso];
+    return paso === 'extra' ? true : !!valor;
+  }
+
+  function renderConfigPaso(paso) {
+    const opciones = catalogo.grupos[paso] || [];
+    const titulo = PASOS_TITULO[paso];
+    const hint = PASOS_HINT[paso];
+    const multiple = paso === 'extra';
+
+    let html = `<h3 class="config-step-title">${titulo}</h3>
+                <p class="config-step-hint">${hint}</p>
+                <div class="config-options">`;
+
+    for (const op of opciones) {
+      const precio = Number(op.precio);
+      const marcado = multiple
+        ? (configSel.extra || []).some((id) => String(id) === String(op.id))
+        : configSel[paso] && String(configSel[paso]) === String(op.id);
+      html += `<button class="config-option ${marcado ? 'selected' : ''}" data-id="${op.id}">
+        <span class="opt-name">${op.nombre}</span>
+        ${op.descripcion ? `<span class="opt-desc">${op.descripcion}</span>` : ''}
+        <span class="opt-price ${precio === 0 ? 'gratis' : ''}">${precio === 0 ? 'Incluido' : `+ ${formatEUR(precio)}`}</span>
+      </button>`;
+    }
+    html += '</div>';
+    configBody.innerHTML = html;
+
+    configBody.querySelectorAll('.config-option').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const id = btn.dataset.id;
+        if (multiple) {
+          configSel.extra = configSel.extra || [];
+          const idx = configSel.extra.findIndex((e) => String(e) === String(id));
+          if (idx >= 0) configSel.extra.splice(idx, 1);
+          else configSel.extra.push(id);
+        } else {
+          configSel[paso] = (String(configSel[paso]) === String(id)) ? null : id;
+        }
+        renderConfig();
+      });
+    });
+  }
+
+  function renderConfigResumen() {
+    const total = calcularPrecioConfig();
+    const partes = [];
+    for (const paso of PASOS) {
+      const ids = paso === 'extra' ? configSel.extra || [] : [configSel[paso]];
+      for (const id of ids) {
+        const op = opcionPorId(id);
+        if (op) partes.push(op.nombre);
+      }
+    }
+    configResumen.innerHTML = partes.length
+      ? `${partes.join(' · ')} — <strong>${formatEUR(total)}</strong>`
+      : `Elige el tamaño para ver el precio — <strong>${formatEUR(0)}</strong>`;
+    return total;
+  }
+
+  function renderConfig() {
+    renderConfigSteps();
+    renderConfigPaso(PASOS[configPaso]);
+    renderConfigResumen();
+
+    const esUltimo = configPaso === PASOS.length - 1;
+    configPrev.hidden = configPaso === 0;
+    configNext.hidden = esUltimo;
+    configAdd.hidden = !esUltimo;
+    configAdd.disabled = !['tamano', 'bizcocho', 'relleno', 'decoracion'].every((p) => configValidoPaso(p));
+  }
+
+  async function abrirConfig() {
+    if (!catalogo) {
+      catalogo = await Api.getOpciones();
+    }
+    configSel = {};
+    configPaso = 0;
+    configModal.classList.add('open');
+    configOverlay.classList.add('open');
+    configOverlay.hidden = false;
+    configModal.setAttribute('aria-hidden', 'false');
+    renderConfig();
+  }
+
+  function cerrarConfig() {
+    configModal.classList.remove('open');
+    configOverlay.classList.remove('open');
+    configOverlay.hidden = true;
+    configModal.setAttribute('aria-hidden', 'true');
+  }
+
+  function añadirTartaAlCarrito() {
+    if (!configSel.tamano || !configSel.bizcocho) return;
+    const total = calcularPrecioConfig();
+    const partes = [];
+    for (const paso of PASOS) {
+      const ids = paso === 'extra' ? configSel.extra || [] : [configSel[paso]];
+      for (const id of ids) {
+        const op = opcionPorId(id);
+        if (op) partes.push(op.nombre);
+      }
+    }
+    const nombre = `Tarta personalizada (${partes.join(', ')})`;
+
+    CartStore.add(
+      {
+        producto_id: catalogo.tarta_base.id,
+        nombre,
+        precio: total,
+        configuracion: {
+          tamano: configSel.tamano,
+          bizcocho: configSel.bizcocho,
+          relleno: configSel.relleno || null,
+          decoracion: configSel.decoracion || null,
+          extras: configSel.extra || [],
+        },
+      },
+      1
+    );
+    actualizarContador();
+    cerrarConfig();
+    abrirDrawer();
+  }
+
   async function init() {
     actualizarContador();
 
@@ -280,9 +482,20 @@ const App = (() => {
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
         cerrarModal();
+        cerrarConfig();
         cerrarDrawer();
       }
     });
+
+    $('#config-close').addEventListener('click', cerrarConfig);
+    configOverlay.addEventListener('click', cerrarConfig);
+    configPrev.addEventListener('click', () => {
+      if (configPaso > 0) { configPaso--; renderConfig(); }
+    });
+    configNext.addEventListener('click', () => {
+      if (configPaso < PASOS.length - 1) { configPaso++; renderConfig(); }
+    });
+    configAdd.addEventListener('click', añadirTartaAlCarrito);
 
     btnCheckout.addEventListener('click', () => {
       checkoutForm.hidden = !checkoutForm.hidden;
@@ -292,7 +505,11 @@ const App = (() => {
       e.preventDefault();
       const nombre = $('#checkout-nombre').value.trim();
       const email = $('#checkout-email').value.trim();
-      const items = CartStore.load().map((i) => ({ producto_id: i.producto_id, cantidad: i.cantidad }));
+      const items = CartStore.load().map((i) => ({
+        producto_id: i.producto_id,
+        cantidad: i.cantidad,
+        ...(i.configuracion ? { configuracion: i.configuracion } : {}),
+      }));
 
       if (items.length === 0) return;
 

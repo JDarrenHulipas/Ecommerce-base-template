@@ -619,6 +619,123 @@ body {
 }
 .modal-foot .btn { font-size: 16px; padding: 12px 26px; }
 
+/* ---------- Configurador de tarta personalizada ---------- */
+.modal-config { width: min(860px, calc(100vw - 40px)); }
+
+.config-head {
+  padding: 24px 28px 16px;
+  border-bottom: 1px solid rgba(104, 20, 20, 0.12);
+}
+.config-head .modal-name { margin-top: 4px; }
+
+.config-steps {
+  display: flex;
+  gap: 6px;
+  margin-top: 14px;
+  flex-wrap: wrap;
+}
+.config-step {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--beige);
+  background: var(--crema);
+  font-size: 14px;
+  color: var(--beige-hover);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.config-step .num {
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  background: var(--beige);
+  color: var(--blanco);
+}
+.config-step.done { color: var(--frambuesa); border-color: var(--rosa); }
+.config-step.done .num { background: var(--rosa); }
+.config-step.active { background: var(--rosa); border-color: var(--rosa); color: var(--blanco); }
+.config-step.active .num { background: var(--blanco); color: var(--rosa); }
+
+.config-body {
+  padding: 24px 28px;
+  max-height: calc(100vh - 320px);
+  overflow-y: auto;
+}
+.config-step-title {
+  font-family: var(--font-heading);
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--negro);
+  margin: 0 0 4px;
+}
+.config-step-hint {
+  color: var(--beige-hover);
+  font-size: 15px;
+  margin: 0 0 18px;
+}
+
+.config-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+}
+.config-option {
+  text-align: left;
+  background: var(--crema);
+  border: 1.5px solid var(--beige);
+  border-radius: 12px;
+  padding: 12px 14px;
+  cursor: pointer;
+  transition: all 0.18s;
+  font-family: var(--font-body);
+}
+.config-option:hover { border-color: var(--rosa); }
+.config-option.selected {
+  border-color: var(--rosa);
+  background: #fdeef3;
+  box-shadow: 0 0 0 1px var(--rosa);
+}
+.config-option .opt-name { display: block; font-size: 16px; font-weight: 600; color: var(--negro); }
+.config-option .opt-desc { display: block; font-size: 13.5px; color: var(--beige-hover); margin-top: 2px; line-height: 1.35; }
+.config-option .opt-price { display: block; font-size: 14px; color: var(--rosa); margin-top: 6px; font-weight: 600; }
+.config-option .opt-price.gratis { color: var(--beige-hover); font-weight: 400; }
+
+.config-foot {
+  border-top: 1px solid rgba(104, 20, 20, 0.12);
+  padding: 18px 28px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.config-resumen { font-size: 15px; color: var(--frambuesa); line-height: 1.5; }
+.config-resumen strong { color: var(--rosa); font-size: 22px; font-family: var(--font-heading); }
+
+.config-nav { display: flex; gap: 10px; }
+.btn-ghost {
+  background: none;
+  border: 1.5px solid var(--beige);
+  color: var(--frambuesa);
+}
+.btn-ghost:hover { border-color: var(--rosa); color: var(--rosa); }
+
+@media (max-width: 760px) {
+  .modal-config { width: calc(100vw - 24px); }
+  .config-body { padding: 18px; max-height: calc(100vh - 300px); }
+  .config-options { grid-template-columns: 1fr; }
+  .config-foot { flex-direction: column; align-items: stretch; }
+  .config-nav { justify-content: space-between; }
+  .config-nav .btn { flex: 1; }
+}
+
 /* ---------- Responsive ---------- */
 @media (max-width: 760px) {
   .hero { grid-template-columns: 1fr; padding: 40px 20px; }

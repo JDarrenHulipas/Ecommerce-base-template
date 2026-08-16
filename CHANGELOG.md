@@ -3,6 +3,19 @@
 Registro de todo lo que se sube al repositorio en cada `git push`.
 Cada entrada indica qué funcionalidad se añadió y cómo usarla.
 
+## [0.3.0] - 2026-08-16 — Configurador "Construye tu tarta"
+
+### Configurador de tartas personalizadas (commit `TBD`)
+Nueva tarjeta **"Construye tu tarta 🎂"** en el catálogo que abre un asistente de 5 pasos: **tamaño, bizcocho, relleno, decoración y extras (multi-selección)**, con precio en vivo según la combinación.
+
+- **BD:** tabla `opciones` (`grupo`, `nombre`, `descripcion`, `precio`) + columna `configuracion` (JSONB) en `pedido_items` (migración `db/migrations/001_configurador_tartas.sql`).
+- **Seed:** 39 opciones reales del catálogo de Kokoro Cakes (tamaños desde 30 €, bizcochos, rellenos, decoraciones y extras).
+- **API:** `GET /api/opciones` (catálogo de opciones + producto base por tenant) y `POST /api/pedidos` acepta `items[].configuracion`, calcula el precio **desde la BD** (nunca confía en el cliente) y guarda el snapshot JSONB de la combinación.
+- **Frontend:** modal con pasos clicables, selección de extras múltiple, resumen de partes + precio y guardado en carrito; el carrito distingue cada configuración como línea propia.
+- La tarjeta "Construye tu tarta" no tiene botón "+" directo: al hacer clic se abre el configurador.
+
+**Cómo usarlo:** recargar `http://localhost:3000`, hacer clic en **Construye tu tarta 🎂**, elegir combinación y añadir al carrito. El pedido guarda la configuración exacta elegida.
+
 ## [0.2.0] - 2026-08-14 — Modal de detalle de producto con ingredientes
 
 ### Modal de detalle (commit `TBD`)
