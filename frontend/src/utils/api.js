@@ -17,6 +17,7 @@ const Api = (() => {
     getProductos: () => request('/productos'),
     getProducto: (slug) => request(`/productos/${slug}`),
     getOpciones: () => request('/opciones'),
+    getContenido: () => request('/contenido'),
     crearPedido: (pedido) =>
       request('/pedidos', {
         method: 'POST',

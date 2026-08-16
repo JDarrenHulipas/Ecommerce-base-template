@@ -156,3 +156,91 @@
   color: #b3261e;
   font-weight: 600;
 }
+
+/* --- Pestañas --- */
+.admin-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid var(--beige, #e6d8cf);
+}
+
+.admin-tab {
+  padding: 0.55rem 1.1rem;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: none;
+  font: inherit;
+  color: var(--vino, #6b2d3a);
+  cursor: pointer;
+  opacity: 0.7;
+}
+
+.admin-tab:hover {
+  opacity: 1;
+}
+
+.admin-tab.active {
+  opacity: 1;
+  font-weight: 600;
+  border-bottom-color: var(--vino, #6b2d3a);
+}
+
+/* --- Formulario de contenido de la portada --- */
+.contenido-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  max-width: 640px;
+}
+
+.contenido-campos {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.contenido-campo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.85rem;
+  color: var(--vino, #6b2d3a);
+}
+
+.contenido-campo input,
+.contenido-campo textarea {
+  padding: 0.55rem 0.7rem;
+  border: 1px solid #d9c4b8;
+  border-radius: 8px;
+  font: inherit;
+  resize: vertical;
+}
+
+.contenido-form .save-btn {
+  align-self: flex-start;
+  padding: 0.55rem 1.2rem;
+  border: none;
+  border-radius: 8px;
+  background: var(--vino, #6b2d3a);
+  color: #fff;
+  cursor: pointer;
+}
+
+.contenido-form .save-btn:hover {
+  opacity: 0.9;
+}
+
+.contenido-form .save-btn:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+
+.admin-table textarea.edit-ing {
+  width: 100%;
+  min-width: 180px;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid #d9c4b8;
+  border-radius: 6px;
+  font: inherit;
+  resize: vertical;
+}

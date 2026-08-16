@@ -33,20 +33,37 @@
 
     <section class="admin-panel" id="admin-panel" hidden>
       <p class="admin-msg" id="admin-msg" role="status"></p>
-      <div class="table-wrap">
-        <table class="admin-table" id="admin-table">
-          <thead>
-            <tr>
-              <th>Producto</th>
-              <th>Categoría</th>
-              <th>Precio (€)</th>
-              <th>Stock</th>
-              <th>Disponible</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody id="admin-tbody"></tbody>
-        </table>
+
+      <nav class="admin-tabs" role="tablist">
+        <button type="button" class="admin-tab active" data-tab="productos">Productos</button>
+        <button type="button" class="admin-tab" data-tab="contenido">Contenido de la portada</button>
+      </nav>
+
+      <div class="admin-tabpanel" id="panel-productos">
+        <div class="table-wrap">
+          <table class="admin-table" id="admin-table">
+            <thead>
+              <tr>
+                <th>Producto</th>
+                <th>Ingredientes</th>
+                <th>Categoría</th>
+                <th>Precio (€)</th>
+                <th>Stock</th>
+                <th>Disponible</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="admin-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="admin-tabpanel" id="panel-contenido" hidden>
+        <form class="contenido-form" id="contenido-form">
+          <div class="contenido-campos" id="contenido-campos"></div>
+          <button type="submit" class="save-btn">Guardar contenido</button>
+        </form>
+        <p class="admin-msg" id="contenido-msg" role="status"></p>
       </div>
     </section>
   </main>

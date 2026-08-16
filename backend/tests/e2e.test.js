@@ -318,3 +318,51 @@ test('E2E: el panel admin permite editar el stock de un producto', { timeout: 12
     await context.close();
   }
 });
+
+test('E2E: el panel admin edita el contenido de la portada y se refleja en la tienda', { timeout: 120000 }, async (t) => {
+  if (!ready) { t.skip(skipReason); return; }
+  if (!adminPassword) { t.skip('ADMIN_PASSWORD no configurado en .env'); return; }
+
+  const { context, page } = await nuevaPagina();
+  const nuevo = `Encargos con 48h (test ${Date.now()})`;
+  try {
+    // Cargar el valor original para restaurarlo al final
+    const res = await fetch(BASE + '/api/contenido', { headers: { 'X-Tenant-Slug': TENANT } });
+    const original = (await res.json()).contenido.announcement;
+
+    await page.goto(BASE + '/admin/', { waitUntil: 'domcontentloaded' });
+    await page.fill('#admin-password', adminPassword);
+    await page.click('#admin-login-form button[type="submit"]');
+    await page.waitForSelector('#admin-panel:not([hidden])');
+
+    await page.click('.admin-tab[data-tab="contenido"]');
+    await page.waitForSelector('#campo-announcement');
+    await page.fill('#campo-announcement', nuevo);
+    await page.click('#contenido-form button[type="submit"]');
+    await page.waitForFunction(() =>
+      document.querySelector('#contenido-msg')?.textContent.includes('guardado')
+    );
+
+    // La portada debe mostrar el nuevo anuncio
+    await page.goto(BASE + '/', { waitUntil: 'domcontentloaded' });
+    await page.waitForFunction(
+      (esperado) => document.querySelector('#contenido-announcement')?.textContent === esperado,
+      nuevo
+    );
+
+    // Restaura el valor original vía API
+    const token = await page.evaluate(() => localStorage.getItem('bakery_admin_token'));
+    const restore = await fetch(BASE + '/api/admin/contenido', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Tenant-Slug': TENANT,
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ contenido: [{ clave: 'announcement', valor: original }] }),
+    });
+    assert.equal(restore.status, 200, 'debería restaurar el anuncio original');
+  } finally {
+    await context.close();
+  }
+});

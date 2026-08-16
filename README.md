@@ -33,7 +33,7 @@ bakerycloud/
 │   └── src/app.js              # app Express (reutilizable por los tests)
 ├── frontend/                   # SPA vanilla con carrito y theming
 │   ├── index.html
-│   ├── admin/                  # panel de administración (login + edición de stock)
+│   ├── admin/                  # panel de administración (login, stock, ingredientes y contenido)
 │   │   ├── index.html
 │   │   ├── admin.js
 │   │   └── admin.css
@@ -83,8 +83,9 @@ bakerycloud/
 - [x] Docker Compose completo (frontend nginx + API + PostgreSQL) con init automático de la BD
 - [x] Configurador "Construye tu tarta" (tamaño, altura, bizcocho, relleno, decoración, extras) con precio en vivo y snapshot JSONB en el pedido
 - [x] Formulario de contacto real (guarda consultas por tienda) + toasts de aviso en toda la página
-- [x] Panel de administración (`/admin/`): login con JWT, selector de tienda y edición de stock/precio/disponibilidad en el catálogo completo
-- [x] Suite de integración del backend (health, productos, pedidos, opciones, contactos, admin) + tests E2E de Playwright
+- [x] Panel de administración (`/admin/`): login con JWT, selector de tienda y edición de stock/precio/disponibilidad/ingredientes en el catálogo completo
+- [x] Panel de administración: pestaña "Contenido de la portada" para editar anuncios, hero, nosotros, contacto y footer (por tienda)
+- [x] Suite de integración del backend (health, productos, pedidos, opciones, contactos, contenido, admin) + tests E2E de Playwright
 - [ ] AWS `eu-south-2` + CI/CD (semanas 7-8)
 - [ ] Cloudflare + lanzamiento (semanas 9-10)
 - [x] Prerrequisitos locales: **Node.js 20+** instalado ✓, **Docker Desktop** instalado ✓
@@ -165,10 +166,13 @@ Endpoints (el tenant se resuelve por cabecera `X-Tenant-Slug` en desarrollo):
 | POST | `/api/pedidos` | Crea un pedido `{ cliente: {nombre,email}, items: [{producto_id, cantidad, configuracion?}] }` |
 | GET | `/api/contactos` | Consultas del formulario de contacto de la tienda activa |
 | POST | `/api/contactos` | Guarda una consulta `{ nombre, email, mensaje }` |
+| GET | `/api/contenido` | Textos de la portada (anuncios, hero, nosotros, contacto, footer) de la tienda activa |
 | POST | `/api/admin/login` | Login admin con `ADMIN_PASSWORD` → JWT (cabecera `X-Tenant-Slug` elige la tienda) |
 | GET | `/api/admin/tiendas` | Lista las tiendas del sistema (requiere token) |
-| GET | `/api/admin/productos` | Catálogo completo de la tienda activa (requiere token) |
-| PATCH | `/api/admin/productos/:id` | Actualiza stock, precio, disponibilidad o nombre (requiere token) |
+| GET | `/api/admin/productos` | Catálogo completo de la tienda activa, incluye ingredientes (requiere token) |
+| PATCH | `/api/admin/productos/:id` | Actualiza stock, precio, disponibilidad, nombre, descripción o ingredientes (requiere token) |
+| GET | `/api/admin/contenido` | Textos editables de la portada de la tienda activa (requiere token) |
+| PUT | `/api/admin/contenido` | Guarda los textos de la portada `{ contenido: [{ clave, valor }] }` (requiere token) |
 
 > El panel admin vive en `http://localhost:3000/admin/` y guarda el JWT en
 > LocalStorage. Solo edita la tienda seleccionada (RLS): los productos de otras

@@ -47,6 +47,7 @@ app.use('/api/productos', require('./routes/productos'));
 app.use('/api/pedidos', require('./routes/pedidos'));
 app.use('/api/opciones', require('./routes/opciones'));
 app.use('/api/contactos', require('./routes/contactos'));
+app.use('/api/contenido', require('./routes/contenido'));
 app.use('/api/admin', require('./routes/admin'));
 
 // Manejo de errores centralizado

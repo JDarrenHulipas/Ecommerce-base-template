@@ -334,3 +334,23 @@ test('contactos: aislamiento por tenant en el listado', async () => {
     await client.end();
   }
 });
+
+// ---------------------------------------------------------------------------
+// GET /api/contenido
+// ---------------------------------------------------------------------------
+
+test('contenido: devuelve los textos de la portada de la tienda activa', async () => {
+  const { status, body } = await api('/api/contenido');
+  assert.equal(status, 200);
+  assert.equal(body.tienda, T.koko);
+  assert.ok(body.contenido.hero_titulo, 'debería tener el título del hero');
+  assert.ok(body.contenido.announcement, 'debería tener la barra de anuncios');
+  assert.ok(body.contenido.hero_sub, 'debería tener el subtítulo del hero');
+});
+
+test('contenido: cada tienda ve su propio contenido (aislamiento)', async () => {
+  const maribel = await api('/api/contenido', { tenant: T.maribel });
+  assert.equal(maribel.status, 200);
+  // maribel no tiene contenido configurado: responde vacío, no error
+  assert.deepEqual(maribel.body.contenido, {});
+});

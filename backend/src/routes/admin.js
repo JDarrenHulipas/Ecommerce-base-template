@@ -42,7 +42,7 @@ router.get('/tiendas', async (req, res, next) => {
 router.get('/productos', async (req, res, next) => {
   try {
     const { rows } = await req.db.query(
-      `SELECT p.id, p.slug, p.nombre, p.descripcion, p.precio, p.stock, p.disponible,
+      `SELECT p.id, p.slug, p.nombre, p.descripcion, p.ingredientes, p.precio, p.stock, p.disponible,
               c.nombre AS categoria
          FROM productos p
          LEFT JOIN categorias c ON c.tienda_id = p.tienda_id AND c.id = p.categoria_id
@@ -54,7 +54,7 @@ router.get('/productos', async (req, res, next) => {
   }
 });
 
-// PATCH /api/admin/productos/:id -> actualiza stock / precio / disponible / nombre / descripcion
+// PATCH /api/admin/productos/:id -> actualiza stock / precio / disponible / nombre / descripcion / ingredientes
 router.patch('/productos/:id', async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -90,6 +90,12 @@ router.patch('/productos/:id', async (req, res, next) => {
     if ('descripcion' in req.body) {
       campos.descripcion = String(req.body.descripcion ?? '');
     }
+    if ('ingredientes' in req.body) {
+      if (typeof req.body.ingredientes !== 'string') {
+        return res.status(400).json({ error: 'ingredientes debe ser texto' });
+      }
+      campos.ingredientes = req.body.ingredientes;
+    }
 
     if (Object.keys(campos).length === 0) {
       return res.status(400).json({ error: 'Sin campos para actualizar' });
@@ -98,13 +104,53 @@ router.patch('/productos/:id', async (req, res, next) => {
     const sets = Object.keys(campos).map((k, i) => `${k} = $${i + 2}`).join(', ');
     const { rowCount, rows } = await req.db.query(
       `UPDATE productos SET ${sets} WHERE id = $1
-         RETURNING id, slug, nombre, descripcion, precio, stock, disponible`,
+         RETURNING id, slug, nombre, descripcion, ingredientes, precio, stock, disponible`,
       [id, ...Object.values(campos)]
     );
     if (rowCount === 0) {
       return res.status(404).json({ error: 'Producto no encontrado' });
     }
     res.json(rows[0]);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /api/admin/contenido -> contenido editable de la portada de la tienda activa
+router.get('/contenido', async (req, res, next) => {
+  try {
+    const { rows } = await req.db.query('SELECT clave, valor FROM contenido ORDER BY clave');
+    res.json({ tienda: req.tenant.slug, contenido: rows });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// PUT /api/admin/contenido -> guarda el contenido de la portada (upsert)
+// Body: { contenido: [{ clave, valor }, ...] }
+router.put('/contenido', async (req, res, next) => {
+  try {
+    const items = req.body?.contenido;
+    if (!Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ error: 'Se requiere contenido: [{ clave, valor }]' });
+    }
+    for (const it of items) {
+      if (typeof it.clave !== 'string' || !it.clave.trim()) {
+        return res.status(400).json({ error: 'Cada ítem debe tener una clave válida' });
+      }
+      if (typeof it.valor !== 'string') {
+        return res.status(400).json({ error: `El valor de "${it.clave}" debe ser texto` });
+      }
+    }
+    for (const it of items) {
+      await req.db.query(
+        `INSERT INTO contenido (tienda_id, clave, valor)
+         VALUES ($1, $2, $3)
+         ON CONFLICT (tienda_id, clave) DO UPDATE SET valor = EXCLUDED.valor`,
+        [req.tenant.id, it.clave, it.valor]
+      );
+    }
+    res.json({ ok: true, actualizados: items.length });
   } catch (err) {
     next(err);
   }

@@ -3,6 +3,17 @@
 Registro de todo lo que se sube al repositorio en cada `git push`.
 Cada entrada indica qué funcionalidad se añadió y cómo usarla.
 
+## [0.7.0] - 2026-08-16 — Edición de ingredientes y contenido de la portada
+
+### Funcionalidad añadida
+- **`GET /api/contenido`** (público): devuelve los textos de la portada (barra de anuncios, hero, nosotros, contacto y footer) de la tienda activa.
+- **API admin de contenido**: `GET /api/admin/contenido` lista los textos editables y `PUT /api/admin/contenido` los guarda `{ contenido: [{ clave, valor }] }`, con validación (400) y aislamiento por tienda (RLS).
+- **Panel admin**: nueva pestaña **"Contenido de la portada"** con campos para anuncios, hero, nosotros, contacto y footer. Al guardar, la tienda pública muestra los cambios al instante.
+- **Ingredientes en el admin**: el listado `GET /api/admin/productos` incluye `ingredientes` y `PATCH /api/admin/productos/:id` permite editarlos (valida que sea texto).
+- **Tests**: suite completa **43/43** (33 integración + 10 E2E). Nuevos tests de contenido en `admin.test.js`/`api.test.js` (incluye verificación en BD y restauración) y E2E que edita el anuncio desde el navegador y comprueba que aparece en la portada.
+
+**Cómo usarlo:** entra en `http://localhost:3000/admin/`, selecciona la tienda, abre la pestaña **Contenido de la portada**, edita los textos y pulsa guardar. Los ingredientes se editan en la pestaña de productos.
+
 ## [0.6.0] - 2026-08-16 — Docker Compose completo (frontend + API + BD)
 
 ### Funcionalidad añadida (commit `ffd269e`)

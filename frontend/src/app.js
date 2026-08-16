@@ -502,8 +502,45 @@ const App = (() => {
     abrirDrawer();
   }
 
+  // Pinta el contenido de la portada desde /api/contenido (con fallback al HTML)
+  function pintarContenido(contenido) {
+    const aplicar = (sel, valor) => {
+      const el = document.querySelector(sel);
+      if (!el || valor == null) return;
+      if (el.dataset.lines === '1') {
+        const lineas = String(valor).split('\n');
+        el.replaceChildren();
+        lineas.forEach((linea, i) => {
+          if (i > 0) el.appendChild(document.createElement('br'));
+          el.appendChild(document.createTextNode(linea));
+        });
+      } else {
+        el.textContent = valor;
+      }
+    };
+    aplicar('#contenido-announcement', contenido.announcement);
+    aplicar('#hero-eyebrow', contenido.hero_eyebrow);
+    aplicar('#hero-titulo', contenido.hero_titulo);
+    aplicar('#hero-sub', contenido.hero_sub);
+    aplicar('#hero-cta', contenido.hero_cta);
+    aplicar('#nosotros-titulo', contenido.nosotros_titulo);
+    aplicar('#nosotros-texto', contenido.nosotros_texto);
+    aplicar('#contacto-texto', contenido.contacto_texto);
+    aplicar('#footer-texto', contenido.footer_texto);
+  }
+
+  async function cargarContenido() {
+    try {
+      const data = await Api.getContenido();
+      pintarContenido(data.contenido);
+    } catch {
+      // Sin contenido configurado: se mantienen los textos por defecto del HTML
+    }
+  }
+
   async function init() {
     actualizarContador();
+    cargarContenido();
 
     try {
       const data = await Api.getProductos();

@@ -13,7 +13,7 @@ const { Client } = require('pg');
 const app = require('../src/app');
 const { databaseUrl } = require('../src/config/env');
 
-const T = { koko: 'kokorocakes' };
+const T = { koko: 'kokorocakes', maribel: 'dulces-maribel' };
 
 let server;
 let baseURL;
@@ -75,6 +75,7 @@ test('admin: /productos lista el catálogo completo (incluye no disponibles)', a
   const tarta = body.productos.find((p) => p.slug === 'tarta-encargo');
   assert.ok(tarta, 'la tarta base debe estar en el listado admin');
   assert.ok('stock' in tarta && 'disponible' in tarta);
+  assert.ok('ingredientes' in tarta, 'el listado admin debe incluir ingredientes');
 });
 
 test('admin: /tiendas lista las tiendas del sistema', async () => {
@@ -85,12 +86,15 @@ test('admin: /tiendas lista las tiendas del sistema', async () => {
 });
 
 test('admin: PATCH actualiza stock/precio/disponible y lo persiste', async () => {
-  const lista = await api('/api/admin/productos', { auth: token });
-  const prod = lista.body.productos.find((p) => p.slug === 'bento-chocograve');
+  // Se usa un producto de maribel para no interferir con los tests de api.test.js,
+  // que leen el precio de los productos de koko (los ficheros corren en paralelo).
+  const lista = await api('/api/admin/productos', { tenant: T.maribel, auth: token });
+  const prod = lista.body.productos[0];
   assert.ok(prod, 'producto de referencia no encontrado');
 
   const { status, body } = await api(`/api/admin/productos/${prod.id}`, {
     method: 'PATCH',
+    tenant: T.maribel,
     auth: token,
     body: { stock: prod.stock + 1, precio: Number(prod.precio) + 1, disponible: true },
   });
@@ -102,7 +106,7 @@ test('admin: PATCH actualiza stock/precio/disponible y lo persiste', async () =>
   const client = new Client({ connectionString: databaseUrl });
   await client.connect();
   try {
-    await client.query('SELECT app.set_tenant(1)');
+    await client.query('SELECT app.set_tenant(2)');
     const { rows } = await client.query('SELECT stock, precio FROM productos WHERE id = $1', [prod.id]);
     assert.equal(Number(rows[0].stock), Number(prod.stock) + 1);
     assert.equal(Number(rows[0].precio), Number(prod.precio) + 1);
@@ -113,6 +117,7 @@ test('admin: PATCH actualiza stock/precio/disponible y lo persiste', async () =>
   // Restaura los valores originales
   const rest = await api(`/api/admin/productos/${prod.id}`, {
     method: 'PATCH',
+    tenant: T.maribel,
     auth: token,
     body: { stock: prod.stock, precio: Number(prod.precio) },
   });
@@ -129,9 +134,86 @@ test('admin: PATCH valida stock, precio y disponible', async () => {
     { precio: -2 },
     { precio: 'abc' },
     { disponible: 'si' },
+    { ingredientes: 123 },
   ];
   for (const body of casos) {
     const { status } = await api(`/api/admin/productos/${id}`, { method: 'PATCH', auth: token, body });
+    assert.equal(status, 400, `debería rechazar: ${JSON.stringify(body)}`);
+  }
+});
+
+test('admin: PATCH actualiza los ingredientes de un producto', async () => {
+  const lista = await api('/api/admin/productos', { auth: token });
+  const prod = lista.body.productos.find((p) => p.slug === 'bento-chocograve');
+  assert.ok(prod, 'producto de referencia no encontrado');
+
+  const original = prod.ingredientes || '';
+  const nuevos = 'Chocolate 70%, Nutella, pepitas, mantequilla, huevos';
+
+  const { status, body } = await api(`/api/admin/productos/${prod.id}`, {
+    method: 'PATCH',
+    auth: token,
+    body: { ingredientes: nuevos },
+  });
+  assert.equal(status, 200);
+  assert.equal(body.ingredientes, nuevos);
+
+  // Restaura los ingredientes originales
+  const rest = await api(`/api/admin/productos/${prod.id}`, {
+    method: 'PATCH',
+    auth: token,
+    body: { ingredientes: original },
+  });
+  assert.equal(rest.status, 200);
+});
+
+test('admin: /contenido lista el contenido de la portada', async () => {
+  const { status, body } = await api('/api/admin/contenido', { auth: token });
+  assert.equal(status, 200);
+  assert.equal(body.tienda, T.koko);
+  assert.ok(Array.isArray(body.contenido) && body.contenido.length > 0);
+  const titulo = body.contenido.find((c) => c.clave === 'hero_titulo');
+  assert.ok(titulo, 'debe existir la clave hero_titulo');
+  assert.ok(titulo.valor, 'hero_titulo no puede estar vacío');
+});
+
+test('admin: PUT /contenido guarda y persiste los textos', async () => {
+  const { body: antes } = await api('/api/admin/contenido', { auth: token });
+  const original = antes.contenido.find((c) => c.clave === 'announcement').valor;
+  const nuevo = `Anuncio de prueba ${Date.now()}`;
+
+  const { status } = await api('/api/admin/contenido', {
+    method: 'PUT',
+    auth: token,
+    body: { contenido: [{ clave: 'announcement', valor: nuevo }] },
+  });
+  assert.equal(status, 200);
+
+  const despues = await api('/api/admin/contenido', { auth: token });
+  assert.equal(despues.body.contenido.find((c) => c.clave === 'announcement').valor, nuevo);
+
+  // La tienda pública debe ver el cambio
+  const publico = await api('/api/contenido');
+  assert.equal(publico.body.contenido.announcement, nuevo);
+
+  // Restaura el valor original
+  const rest = await api('/api/admin/contenido', {
+    method: 'PUT',
+    auth: token,
+    body: { contenido: [{ clave: 'announcement', valor: original }] },
+  });
+  assert.equal(rest.status, 200);
+});
+
+test('admin: PUT /contenido valida los datos', async () => {
+  const casos = [
+    { contenido: [] },
+    {},
+    { contenido: [{ clave: 'hero_titulo', valor: 42 }] },
+    { contenido: [{ clave: '', valor: 'hola' }] },
+  ];
+  for (const body of casos) {
+    const { status } = await api('/api/admin/contenido', { method: 'PUT', auth: token, body });
     assert.equal(status, 400, `debería rechazar: ${JSON.stringify(body)}`);
   }
 });
