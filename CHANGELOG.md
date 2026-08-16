@@ -3,6 +3,23 @@
 Registro de todo lo que se sube al repositorio en cada `git push`.
 Cada entrada indica qué funcionalidad se añadió y cómo usarla.
 
+## [0.5.0] - 2026-08-16 — Panel de administración (`/admin/`)
+
+### Funcionalidad añadida (commit `d63b173`)
+- **API admin protegida**: `POST /api/admin/login` valida la contraseña (`ADMIN_PASSWORD`) y devuelve un JWT firmado con `ADMIN_SECRET`. Si faltan estas variables en `.env`, todas las rutas responden **503**.
+- **Rutas admin** (exigen token `Bearer`):
+  - `GET /api/admin/tiendas` — lista las tiendas del sistema (multi-tenant).
+  - `GET /api/admin/productos` — catálogo **completo** de la tienda activa (incluye no disponibles), aislado por RLS.
+  - `PATCH /api/admin/productos/:id` — actualiza stock, precio, disponible, nombre o descripción con validación (400) y 404 si el producto no existe o es de otra tienda.
+- **Panel frontend** en `http://localhost:3000/admin/`: login, selector de tienda y edición por fila (nombre, descripción, precio, stock, disponible) con mensajes de guardado.
+- **Tests**: suite `admin.test.js` (login, 401, listados, PATCH persistido + verificado en BD, validaciones, aislamiento) y test E2E de Playwright que edita stock desde el navegador. Suite completa: **36/36**.
+
+### Refuerzos incluidos en el mismo push
+- **Validación de pedidos**: `POST /api/pedidos` rechaza cantidades no enteras, negativas o ausentes (400) y configuraciones cuyas opciones no pertenezcan al grupo esperado (tamaño/altura/bizcocho/relleno/decoración/extra).
+- **Seguridad frontend**: escaping XSS (`escapeHtml`) en catálogo, carrito, modal e ingredientes, y `type="button"` en todos los botones del formulario.
+
+**Cómo usarlo:** configurar `ADMIN_PASSWORD` y `ADMIN_SECRET` en `backend/.env`, entrar en `http://localhost:3000/admin/`, elegir tienda y editar stock/precio. La contraseña de desarrollo es `admin1234` (¡cambiar en producción!).
+
 ## [0.4.0] - 2026-08-16 — Formulario de contacto real
 
 ### Funcionalidad añadida (commit `2a7d5c6`)
