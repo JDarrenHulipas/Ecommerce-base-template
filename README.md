@@ -83,7 +83,7 @@ bakerycloud/
 - [x] Docker Compose completo (frontend nginx + API + PostgreSQL) con init automático de la BD
 - [x] Configurador "Construye tu tarta" (tamaño, altura, bizcocho, relleno, decoración, extras) con precio en vivo y snapshot JSONB en el pedido
 - [x] Formulario de contacto real (guarda consultas por tienda) + toasts de aviso en toda la página
-- [x] Panel de administración (`/admin/`): login con JWT, selector de tienda, crear/editar/eliminar productos (imagen, stock, precio, disponibilidad, ingredientes) y pestañas de Pedidos y Contactos
+- [x] Panel de administración (`/admin/`): login con JWT, selector de tienda, crear/editar/eliminar productos (imagen, stock, precio, disponibilidad, ingredientes) y pestañas de Pedidos (con cambio de estado) y Contactos
 - [x] Panel de administración: pestaña "Contenido de la portada" para editar anuncios, hero, nosotros, contacto y footer (por tienda)
 - [x] Suite de integración del backend (health, productos, pedidos, opciones, contactos, contenido, admin) + tests E2E de Playwright
 - [ ] AWS `eu-south-2` + CI/CD (semanas 7-8)
@@ -174,6 +174,7 @@ Endpoints (el tenant se resuelve por cabecera `X-Tenant-Slug` en desarrollo):
 | PATCH | `/api/admin/productos/:id` | Actualiza stock, precio, disponibilidad, nombre, descripción, ingredientes o imagen (`imagen_s3`, URL) (requiere token) |
 | DELETE | `/api/admin/productos/:id` | Elimina un producto; 409 si tiene pedidos asociados (requiere token) |
 | GET | `/api/admin/pedidos` | Pedidos de la tienda activa con cliente e items (requiere token) |
+| PATCH | `/api/admin/pedidos/:id/estado` | Cambia el estado de un pedido `{ estado: "confirmado"|"enviado"|"entregado"|"cancelado" }` (requiere token) |
 | GET | `/api/admin/contactos` | Consultas del formulario de contacto de la tienda activa (requiere token) |
 | GET | `/api/admin/contenido` | Textos editables de la portada de la tienda activa (requiere token) |
 | PUT | `/api/admin/contenido` | Guarda los textos de la portada `{ contenido: [{ clave, valor }] }` (requiere token) |

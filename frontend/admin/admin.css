@@ -419,24 +419,32 @@
   text-decoration: underline;
 }
 
-.estado {
-  display: inline-block;
-  padding: 0.2rem 0.55rem;
+.estado-select {
+  appearance: none;
+  padding: 0.2rem 1.6rem 0.2rem 0.55rem;
+  border: 1px solid transparent;
   border-radius: 999px;
+  font: inherit;
   font-size: 0.75rem;
   font-weight: 600;
   text-transform: capitalize;
-  background: #f3e6dd;
+  cursor: pointer;
+  background: #f3e6dd url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='6' viewBox='0 0 8 6'%3E%3Cpath fill='%236b2d3a' d='M4 6 0 0h8z'/%3E%3C/svg%3E") no-repeat right 0.5rem center;
   color: var(--vino, #6b2d3a);
 }
 
-.estado-cancelado {
-  background: #f9dddd;
+.estado-select:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.estado-select.estado-cancelado {
+  background-color: #f9dddd;
   color: #b3261e;
 }
 
-.estado-entregado,
-.estado-enviado {
-  background: #ddeedd;
+.estado-select.estado-entregado,
+.estado-select.estado-enviado {
+  background-color: #ddeedd;
   color: #1d7a3c;
 }

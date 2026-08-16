@@ -46,6 +46,8 @@ const AdminApp = (() => {
   let contactos = [];
   let nuevaImagen = '';
 
+  const ESTADOS_PEDIDO = ['pendiente', 'confirmado', 'enviado', 'entregado', 'cancelado'];
+
   const token = () => localStorage.getItem(TOKEN_KEY);
   const tenantSlug = () => localStorage.getItem(TENANT_KEY) || 'kokorocakes';
 
@@ -308,7 +310,7 @@ const AdminApp = (() => {
       pedidosTbody.innerHTML = '<tr><td colspan="5">No hay pedidos en esta tienda.</td></tr>';
       return;
     }
-    pedidosTbody.innerHTML = pedidos.map((o) => {
+    pedidosTbody.innerHTML = pedidos.map((o, i) => {
       const cliente = o.cliente || {};
       const productosTexto = o.items
         .map((it) => `${escapeHtml(it.nombre)} ×${it.cantidad}`)
@@ -321,10 +323,35 @@ const AdminApp = (() => {
             <a href="mailto:${escapeHtml(cliente.email || '')}" class="p-email">${escapeHtml(cliente.email || '')}</a>
           </td>
           <td>${productosTexto}</td>
-          <td><span class="estado estado-${escapeHtml(o.estado)}">${escapeHtml(o.estado)}</span></td>
+          <td>
+            <select class="estado-select estado-${escapeHtml(o.estado)}" data-i="${i}" aria-label="Estado del pedido">
+              ${ESTADOS_PEDIDO.map((e) => `<option value="${e}" ${e === o.estado ? 'selected' : ''}>${e}</option>`).join('')}
+            </select>
+          </td>
           <td>${Number(o.total).toFixed(2)} €</td>
         </tr>`;
     }).join('');
+
+    pedidosTbody.querySelectorAll('.estado-select').forEach((sel) => {
+      sel.addEventListener('change', () => cambiarEstadoPedido(sel));
+    });
+  }
+
+  async function cambiarEstadoPedido(sel) {
+    const o = pedidos[Number(sel.dataset.i)];
+    const estado = sel.value;
+    sel.disabled = true;
+    try {
+      await request(`/api/admin/pedidos/${o.id}/estado`, { method: 'PATCH', body: { estado } });
+      o.estado = estado;
+      sel.className = `estado-select estado-${escapeHtml(estado)}`;
+      setMsg(pedidosMsg, `Pedido #${o.id} → ${estado}.`, true);
+    } catch (err) {
+      setMsg(pedidosMsg, `No se pudo actualizar el estado: ${err.message}`);
+      sel.value = o.estado;
+    } finally {
+      sel.disabled = false;
+    }
   }
 
   async function cargarContactos() {

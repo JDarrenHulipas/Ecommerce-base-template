@@ -3,6 +3,15 @@
 Registro de todo lo que se sube al repositorio en cada `git push`.
 Cada entrada indica qué funcionalidad se añadió y cómo usarla.
 
+## [0.11.0] - 2026-08-16 — Estado de pedidos editable en el panel admin
+
+### Funcionalidad añadida
+- **`PATCH /api/admin/pedidos/:id/estado`**: cambia el estado de un pedido de la tienda activa con `{ estado: "confirmado" | "enviado" | "entregado" | "cancelado" }`. Valida el estado (400), respeta el aislamiento por tienda (RLS: pedido de otra tienda → 404) y devuelve 404 si el pedido no existe.
+- **Panel admin (pestaña Pedidos)**: el estado deja de ser un badge estático y pasa a ser un **desplegable** con los 5 estados posibles (con color según el estado: pendiente, confirmado, enviado/entregado, cancelado). Al cambiarlo se guarda al instante y se actualiza el mensaje de la pestaña.
+- **Tests**: suite completa **61/61** (49 integración + 12 E2E). Nuevos tests de cambio de estado (persistencia, 400 en estado inválido o ausente, 404 por RLS e inexistente) y un E2E que crea un pedido, lo cambia a "entregado" desde el navegador y verifica que queda persistido.
+
+**Cómo usarlo:** en `/admin/`, pestaña **Pedidos**, elige el nuevo estado en el desplegable de cada pedido y se guarda solo.
+
 ## [0.10.0] - 2026-08-16 — Subida de imagen por botón en el panel admin
 
 ### Funcionalidad añadida

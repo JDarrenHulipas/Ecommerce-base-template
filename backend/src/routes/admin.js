@@ -350,6 +350,33 @@ router.get('/contactos', async (req, res, next) => {
   }
 });
 
+const ESTADOS_PEDIDO = ['pendiente', 'confirmado', 'enviado', 'entregado', 'cancelado'];
+
+// PATCH /api/admin/pedidos/:id/estado -> cambia el estado de un pedido de la tienda activa
+// Body: { estado: 'confirmado' | 'enviado' | 'entregado' | 'cancelado' }
+router.patch('/pedidos/:id/estado', async (req, res, next) => {
+  try {
+    const { estado } = req.body || {};
+    if (typeof estado !== 'string' || !ESTADOS_PEDIDO.includes(estado)) {
+      return res.status(400).json({
+        error: `estado debe ser uno de: ${ESTADOS_PEDIDO.join(', ')}`,
+      });
+    }
+    const { rowCount, rows } = await req.db.query(
+      `UPDATE pedidos SET estado = $2
+         WHERE id = $1
+        RETURNING id, estado`,
+      [req.params.id, estado]
+    );
+    if (rowCount === 0) {
+      return res.status(404).json({ error: 'Pedido no encontrado' });
+    }
+    res.json(rows[0]);
+  } catch (err) {
+    next(err);
+  }
+});
+
 // POST /api/admin/imagenes -> sube una imagen (multipart, campo "file") y devuelve su URL
 router.post('/imagenes', (req, res) => {
   upload.single('file')(req, res, (err) => {

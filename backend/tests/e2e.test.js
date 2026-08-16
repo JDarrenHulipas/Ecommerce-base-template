@@ -370,6 +370,59 @@ test('E2E: el panel admin edita el contenido de la portada y se refleja en la ti
   }
 });
 
+test('E2E: el panel admin cambia el estado de un pedido', { timeout: 120000 }, async (t) => {
+  if (!ready) { t.skip(skipReason); return; }
+  if (!adminPassword) { t.skip('ADMIN_PASSWORD no configurado en .env'); return; }
+
+  // Crea un pedido real vía la API pública
+  const email = `e2e-estado-${Date.now()}@test.local`;
+  const { productos } = await apiGet('/api/productos');
+  const prod = productos[0];
+  assert.ok(prod, 'debería haber productos');
+  const res = await fetch(BASE + '/api/pedidos', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Tenant-Slug': TENANT },
+    body: JSON.stringify({
+      cliente: { nombre: 'E2E Estado', email },
+      items: [{ producto_id: prod.id, cantidad: 1 }],
+    }),
+  });
+  const pedido = await res.json();
+  assert.ok(pedido.pedido_id, 'debería crearse el pedido');
+
+  const { context, page } = await nuevaPagina();
+  try {
+    await page.goto(BASE + '/admin/', { waitUntil: 'domcontentloaded' });
+    await page.fill('#admin-password', adminPassword);
+    await page.click('#admin-login-form button[type="submit"]');
+    await page.waitForSelector('#admin-panel:not([hidden])');
+
+    await page.click('.admin-tab[data-tab="pedidos"]');
+    const row = page.locator(`#pedidos-tbody tr:has(.p-email:text-is("${email}"))`);
+    await row.waitFor();
+
+    await row.locator('.estado-select').selectOption('entregado');
+    await page.waitForFunction(
+      (id) => document.querySelector('#pedidos-msg')?.textContent.includes(`#${id}`),
+      pedido.pedido_id
+    );
+    const msg = await page.locator('#pedidos-msg').textContent();
+    assert.ok(msg.includes('entregado'), `mensaje sin estado nuevo: ${msg}`);
+
+    // El estado queda persistido vía API
+    const token = await page.evaluate(() => localStorage.getItem('bakery_admin_token'));
+    const list = await fetch(BASE + '/api/admin/pedidos', {
+      headers: { 'X-Tenant-Slug': TENANT, Authorization: `Bearer ${token}` },
+    });
+    const data = await list.json();
+    const guardado = data.pedidos.find((o) => o.id === pedido.pedido_id);
+    assert.equal(guardado.estado, 'entregado');
+  } finally {
+    await context.close();
+    await limpiarDB(email, 'pedido');
+  }
+});
+
 test('E2E: el panel admin crea un producto nuevo con imagen subida', { timeout: 120000 }, async (t) => {
   if (!ready) { t.skip(skipReason); return; }
   if (!adminPassword) { t.skip('ADMIN_PASSWORD no configurado en .env'); return; }

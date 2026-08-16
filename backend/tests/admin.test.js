@@ -473,6 +473,119 @@ test('admin: GET /pedidos lista los pedidos con cliente e items', async () => {
   }
 });
 
+// ---------------------------------------------------------------------------
+// PATCH /api/admin/pedidos/:id/estado
+// ---------------------------------------------------------------------------
+
+test('admin: PATCH /pedidos/:id/estado cambia el estado y lo persiste', async () => {
+  // Se crea un pedido real vía la API pública de maribel
+  const email = `admin-estado-${Date.now()}@example.com`;
+  const { body: prodList } = await api('/api/admin/productos', { tenant: T.maribel, auth: token });
+  const prod = prodList.productos.find((p) => p.slug === 'mantecado-canelas');
+  assert.ok(prod, 'producto de referencia no encontrado');
+
+  const { body: pedido } = await api('/api/pedidos', {
+    method: 'POST',
+    tenant: T.maribel,
+    body: {
+      cliente: { nombre: 'Cliente Estado', email },
+      items: [{ producto_id: prod.id, cantidad: 1 }],
+    },
+  });
+  assert.ok(pedido.pedido_id, 'debería crearse el pedido');
+
+  const { status, body } = await api(`/api/admin/pedidos/${pedido.pedido_id}/estado`, {
+    method: 'PATCH',
+    tenant: T.maribel,
+    auth: token,
+    body: { estado: 'confirmado' },
+  });
+  assert.equal(status, 200);
+  assert.equal(body.estado, 'confirmado');
+
+  // Aparece en el listado del admin con el nuevo estado
+  const lista = await api('/api/admin/pedidos', { tenant: T.maribel, auth: token });
+  const actualizado = lista.body.pedidos.find((o) => o.id === pedido.pedido_id);
+  assert.equal(actualizado.estado, 'confirmado');
+
+  // Limpieza
+  const client = new Client({ connectionString: databaseUrl });
+  await client.connect();
+  try {
+    await client.query('SELECT app.set_tenant(2)');
+    await client.query('DELETE FROM pedidos WHERE id = $1', [pedido.pedido_id]);
+    await client.query('DELETE FROM clientes WHERE email = $1', [email]);
+  } finally {
+    await client.end();
+  }
+});
+
+test('admin: PATCH /pedidos/:id/estado valida el estado y respeta RLS', async () => {
+  const email = `admin-estado-${Date.now()}@example.com`;
+  const { body: prodList } = await api('/api/admin/productos', { tenant: T.maribel, auth: token });
+  const prod = prodList.productos.find((p) => p.slug === 'mantecado-canelas');
+  assert.ok(prod, 'producto de referencia no encontrado');
+
+  const { body: pedido } = await api('/api/pedidos', {
+    method: 'POST',
+    tenant: T.maribel,
+    body: {
+      cliente: { nombre: 'Cliente Estado', email },
+      items: [{ producto_id: prod.id, cantidad: 1 }],
+    },
+  });
+  assert.ok(pedido.pedido_id, 'debería crearse el pedido');
+
+  // Estado inválido -> 400
+  const invalido = await api(`/api/admin/pedidos/${pedido.pedido_id}/estado`, {
+    method: 'PATCH',
+    tenant: T.maribel,
+    auth: token,
+    body: { estado: 'volando' },
+  });
+  assert.equal(invalido.status, 400);
+  const sinEstado = await api(`/api/admin/pedidos/${pedido.pedido_id}/estado`, {
+    method: 'PATCH',
+    tenant: T.maribel,
+    auth: token,
+    body: {},
+  });
+  assert.equal(sinEstado.status, 400);
+
+  // Otra tienda no puede tocar el pedido (RLS -> 404)
+  const cross = await api(`/api/admin/pedidos/${pedido.pedido_id}/estado`, {
+    method: 'PATCH',
+    tenant: T.koko,
+    auth: token,
+    body: { estado: 'cancelado' },
+  });
+  assert.equal(cross.status, 404, 'un pedido de otra tienda debe ser invisible');
+
+  // El estado sigue sin tocar
+  const lista = await api('/api/admin/pedidos', { tenant: T.maribel, auth: token });
+  assert.equal(lista.body.pedidos.find((o) => o.id === pedido.pedido_id).estado, 'pendiente');
+
+  // Limpieza
+  const client = new Client({ connectionString: databaseUrl });
+  await client.connect();
+  try {
+    await client.query('SELECT app.set_tenant(2)');
+    await client.query('DELETE FROM pedidos WHERE id = $1', [pedido.pedido_id]);
+    await client.query('DELETE FROM clientes WHERE email = $1', [email]);
+  } finally {
+    await client.end();
+  }
+});
+
+test('admin: PATCH /pedidos/:id/estado de un pedido inexistente devuelve 404', async () => {
+  const { status } = await api('/api/admin/pedidos/999999/estado', {
+    method: 'PATCH',
+    auth: token,
+    body: { estado: 'enviado' },
+  });
+  assert.equal(status, 404);
+});
+
 test('admin: GET /contactos lista las consultas de la tienda activa', async () => {
   const email = `admin-contactos-${Date.now()}@example.com`;
   const mensaje = 'Consulta de prueba para el panel admin';
