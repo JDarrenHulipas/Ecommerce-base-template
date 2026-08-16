@@ -42,7 +42,7 @@ router.get('/tiendas', async (req, res, next) => {
 router.get('/productos', async (req, res, next) => {
   try {
     const { rows } = await req.db.query(
-      `SELECT p.id, p.slug, p.nombre, p.descripcion, p.ingredientes, p.precio, p.stock, p.disponible,
+      `SELECT p.id, p.slug, p.nombre, p.descripcion, p.ingredientes, p.precio, p.imagen_s3, p.stock, p.disponible,
               c.nombre AS categoria
          FROM productos p
          LEFT JOIN categorias c ON c.tienda_id = p.tienda_id AND c.id = p.categoria_id
@@ -96,6 +96,13 @@ router.patch('/productos/:id', async (req, res, next) => {
       }
       campos.ingredientes = req.body.ingredientes;
     }
+    if ('imagen_s3' in req.body) {
+      const img = String(req.body.imagen_s3 ?? '').trim();
+      if (img && !/^https?:\/\//.test(img)) {
+        return res.status(400).json({ error: 'imagen_s3 debe ser una URL válida (http/https)' });
+      }
+      campos.imagen_s3 = img || null;
+    }
 
     if (Object.keys(campos).length === 0) {
       return res.status(400).json({ error: 'Sin campos para actualizar' });
@@ -104,7 +111,7 @@ router.patch('/productos/:id', async (req, res, next) => {
     const sets = Object.keys(campos).map((k, i) => `${k} = $${i + 2}`).join(', ');
     const { rowCount, rows } = await req.db.query(
       `UPDATE productos SET ${sets} WHERE id = $1
-         RETURNING id, slug, nombre, descripcion, ingredientes, precio, stock, disponible`,
+         RETURNING id, slug, nombre, descripcion, ingredientes, precio, imagen_s3, stock, disponible`,
       [id, ...Object.values(campos)]
     );
     if (rowCount === 0) {
@@ -181,10 +188,24 @@ router.post('/productos', async (req, res, next) => {
     if (b.disponible !== undefined && typeof b.disponible !== 'boolean') {
       return res.status(400).json({ error: 'disponible debe ser true o false' });
     }
+    if (b.imagen_s3 !== undefined) {
+      const img = String(b.imagen_s3 ?? '').trim();
+      if (img && !/^https?:\/\//.test(img)) {
+        return res.status(400).json({ error: 'imagen_s3 debe ser una URL válida (http/https)' });
+      }
+    } else if (b.imagen !== undefined) {
+      const img = String(b.imagen ?? '').trim();
+      if (img && !/^https?:\/\//.test(img)) {
+        return res.status(400).json({ error: 'imagen debe ser una URL válida (http/https)' });
+      }
+    }
 
     const precio = b.precio !== undefined ? Number(b.precio) : 0;
     const stock = b.stock !== undefined ? Number(b.stock) : 0;
     const disponible = b.disponible !== undefined ? b.disponible : true;
+    const imagenS3 = (b.imagen_s3 !== undefined
+      ? String(b.imagen_s3 ?? '').trim()
+      : b.imagen !== undefined ? String(b.imagen ?? '').trim() : '') || null;
 
     // Categoría por nombre: se crea en la tienda si no existe.
     // El esquema exige categoria_id NOT NULL, así que sin categoría se usa "General".
@@ -217,9 +238,9 @@ router.post('/productos', async (req, res, next) => {
     }
 
     const { rows } = await req.db.query(
-      `INSERT INTO productos (tienda_id, categoria_id, slug, nombre, descripcion, ingredientes, precio, stock, disponible)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-       RETURNING id, slug, nombre, descripcion, ingredientes, precio, stock, disponible`,
+      `INSERT INTO productos (tienda_id, categoria_id, slug, nombre, descripcion, ingredientes, precio, imagen_s3, stock, disponible)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+       RETURNING id, slug, nombre, descripcion, ingredientes, precio, imagen_s3, stock, disponible`,
       [
         req.tenant.id,
         categoriaId,
@@ -228,6 +249,7 @@ router.post('/productos', async (req, res, next) => {
         String(b.descripcion ?? ''),
         String(b.ingredientes ?? ''),
         precio,
+        imagenS3,
         stock,
         disponible,
       ]

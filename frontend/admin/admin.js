@@ -88,7 +88,7 @@ const AdminApp = (() => {
 
   function render() {
     if (productos.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="7">No hay productos en esta tienda.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="8">No hay productos en esta tienda.</td></tr>';
       return;
     }
     tbody.innerHTML = productos.map((p, i) => `
@@ -100,6 +100,7 @@ const AdminApp = (() => {
         </td>
         <td><textarea class="edit-ing" rows="3" aria-label="Ingredientes del producto">${escapeHtml(p.ingredientes || '')}</textarea></td>
         <td>${escapeHtml(p.categoria || '—')}</td>
+        <td><input type="url" class="edit-img" value="${escapeHtml(p.imagen_s3 || '')}" placeholder="https://..." aria-label="URL de la imagen"></td>
         <td><input type="number" class="edit-precio" step="0.01" min="0" value="${p.precio}" aria-label="Precio"></td>
         <td><input type="number" class="edit-stock" step="1" min="0" value="${p.stock}" aria-label="Stock"></td>
         <td><input type="checkbox" class="edit-disp" ${p.disponible ? 'checked' : ''} aria-label="Disponible"></td>
@@ -126,6 +127,7 @@ const AdminApp = (() => {
       nombre: tr.querySelector('.edit-nombre').value.trim(),
       descripcion: tr.querySelector('.edit-desc').value,
       ingredientes: tr.querySelector('.edit-ing').value,
+      imagen_s3: tr.querySelector('.edit-img').value.trim() || null,
       precio: Number(tr.querySelector('.edit-precio').value),
       stock: Number(tr.querySelector('.edit-stock').value),
       disponible: tr.querySelector('.edit-disp').checked,
@@ -141,6 +143,7 @@ const AdminApp = (() => {
         nombre: guardado.nombre,
         descripcion: guardado.descripcion,
         ingredientes: guardado.ingredientes,
+        imagen_s3: guardado.imagen_s3,
         precio: guardado.precio,
         stock: guardado.stock,
         disponible: guardado.disponible,
@@ -175,6 +178,7 @@ const AdminApp = (() => {
       nombre: $('#np-nombre').value.trim(),
       slug: $('#np-slug').value.trim() || undefined,
       categoria: $('#np-categoria').value.trim() || undefined,
+      imagen: $('#np-img').value.trim() || undefined,
       precio: Number($('#np-precio').value),
       stock: Number($('#np-stock').value),
       disponible: $('#np-disponible').checked,

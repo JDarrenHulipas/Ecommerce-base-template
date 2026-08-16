@@ -3,6 +3,17 @@
 Registro de todo lo que se sube al repositorio en cada `git push`.
 Cada entrada indica qué funcionalidad se añadió y cómo usarla.
 
+## [0.9.0] - 2026-08-16 — Imagen de producto en el panel admin
+
+### Funcionalidad añadida
+- **Campo "Imagen (URL)"** en la tabla de productos del admin: cada fila muestra la URL (`imagen_s3`) y permite guardarla o borrarla (cadena vacía → `null`).
+- **Formulario "Añadir producto nuevo"**: nuevo campo de URL de imagen.
+- **API**: el listado `GET /api/admin/productos` ahora incluye `imagen_s3`; `POST` y `PATCH /api/admin/productos/:id` aceptan la imagen (campo `imagen_s3`, o `imagen` en el POST) con validación de URL (400 si no empieza por `http/https`).
+- La tienda pública ya usaba `imagen_s3` si estaba definida (con degradado/local `/img/<slug>.jpg` en caso contrario), así que la imagen configurada aparece directamente en la portada.
+- **Tests**: suite completa **53/53** (42 integración + 11 E2E). Nuevos tests de listado/PATCH de imagen (persistencia en BD, borrado con cadena vacía) y validaciones; el E2E de creación rellena también la imagen.
+
+**Cómo usarlo:** en `/admin/`, pestaña Productos, pega la URL de la imagen en la columna "Imagen (URL)" y pulsa Guardar, o usa el campo del formulario "Añadir producto nuevo".
+
 ## [0.8.0] - 2026-08-16 — Panel admin: pedidos, contactos y gestión de productos
 
 ### Funcionalidad añadida

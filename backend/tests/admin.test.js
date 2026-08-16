@@ -76,6 +76,7 @@ test('admin: /productos lista el catálogo completo (incluye no disponibles)', a
   assert.ok(tarta, 'la tarta base debe estar en el listado admin');
   assert.ok('stock' in tarta && 'disponible' in tarta);
   assert.ok('ingredientes' in tarta, 'el listado admin debe incluir ingredientes');
+  assert.ok('imagen_s3' in tarta, 'el listado admin debe incluir imagen_s3');
 });
 
 test('admin: /tiendas lista las tiendas del sistema', async () => {
@@ -135,6 +136,8 @@ test('admin: PATCH valida stock, precio y disponible', async () => {
     { precio: 'abc' },
     { disponible: 'si' },
     { ingredientes: 123 },
+    { imagen_s3: 123 },
+    { imagen_s3: 'no-es-una-url' },
   ];
   for (const body of casos) {
     const { status } = await api(`/api/admin/productos/${id}`, { method: 'PATCH', auth: token, body });
@@ -163,6 +166,63 @@ test('admin: PATCH actualiza los ingredientes de un producto', async () => {
     method: 'PATCH',
     auth: token,
     body: { ingredientes: original },
+  });
+  assert.equal(rest.status, 200);
+});
+
+test('admin: PATCH actualiza la imagen (imagen_s3) y la persiste', async () => {
+  const lista = await api('/api/admin/productos', { auth: token });
+  const prod = lista.body.productos.find((p) => p.slug === 'bento-chocograve');
+  assert.ok(prod, 'producto de referencia no encontrado');
+
+  const original = prod.imagen_s3 || null;
+  const nueva = `https://img.example.com/${Date.now()}.jpg`;
+
+  const { status, body } = await api(`/api/admin/productos/${prod.id}`, {
+    method: 'PATCH',
+    auth: token,
+    body: { imagen_s3: nueva },
+  });
+  assert.equal(status, 200);
+  assert.equal(body.imagen_s3, nueva);
+
+  // Verificación directa en BD y restauración
+  const client = new Client({ connectionString: databaseUrl });
+  await client.connect();
+  try {
+    await client.query('SELECT app.set_tenant(1)');
+    const { rows } = await client.query('SELECT imagen_s3 FROM productos WHERE id = $1', [prod.id]);
+    assert.equal(rows[0].imagen_s3, nueva);
+  } finally {
+    await client.end();
+  }
+
+  const rest = await api(`/api/admin/productos/${prod.id}`, {
+    method: 'PATCH',
+    auth: token,
+    body: { imagen_s3: original },
+  });
+  assert.equal(rest.status, 200);
+});
+
+test('admin: PATCH puede borrar la imagen con una cadena vacía', async () => {
+  const lista = await api('/api/admin/productos', { auth: token });
+  const prod = lista.body.productos.find((p) => p.slug === 'bento-chocograve');
+  assert.ok(prod, 'producto de referencia no encontrado');
+  const original = prod.imagen_s3 || null;
+
+  const { status, body } = await api(`/api/admin/productos/${prod.id}`, {
+    method: 'PATCH',
+    auth: token,
+    body: { imagen_s3: '' },
+  });
+  assert.equal(status, 200);
+  assert.equal(body.imagen_s3, null);
+
+  const rest = await api(`/api/admin/productos/${prod.id}`, {
+    method: 'PATCH',
+    auth: token,
+    body: { imagen_s3: original },
   });
   assert.equal(rest.status, 200);
 });
@@ -254,6 +314,7 @@ test('admin: POST /productos crea un producto con slug y categoría automáticos
       stock: 4,
       descripcion: 'Producto creado por el test',
       ingredientes: 'Harina, azúcar, huevos',
+      imagen: 'https://img.example.com/tarta-test.jpg',
     },
   });
   assert.equal(status, 201);
@@ -261,6 +322,7 @@ test('admin: POST /productos crea un producto con slug y categoría automáticos
   assert.ok(body.id, 'debería devolver el id');
   assert.equal(Number(body.precio), 19.9);
   assert.equal(Number(body.stock), 4);
+  assert.equal(body.imagen_s3, 'https://img.example.com/tarta-test.jpg');
   assert.match(body.slug, /^tarta-test-\d+$/, 'el slug se autogenera desde el nombre');
 
   // Aparece en el listado con su categoría
@@ -285,6 +347,7 @@ test('admin: POST /productos valida los datos', async () => {
     { nombre: 'X', precio: -1 },
     { nombre: 'X', stock: 1.5 },
     { nombre: 'X', disponible: 'si' },
+    { nombre: 'X', imagen: 'no-es-una-url' },
   ];
   for (const body of casos) {
     const { status } = await api('/api/admin/productos', {

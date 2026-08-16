@@ -384,6 +384,7 @@ test('E2E: el panel admin crea un producto nuevo desde el formulario', { timeout
     await page.fill('#np-precio', '12.5');
     await page.fill('#np-stock', '3');
     await page.fill('#np-categoria', 'Tartas E2E');
+    await page.fill('#np-img', 'https://img.example.com/e2e.jpg');
     await page.click('#producto-form button[type="submit"]');
 
     await page.waitForFunction(

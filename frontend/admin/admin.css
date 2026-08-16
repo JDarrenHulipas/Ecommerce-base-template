@@ -134,6 +134,15 @@
   border-radius: 6px;
 }
 
+.admin-table input[type='url'] {
+  width: 100%;
+  min-width: 150px;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid #d9c4b8;
+  border-radius: 6px;
+  font: inherit;
+}
+
 .admin-table .save-btn {
   padding: 0.4rem 0.9rem;
   border: none;
