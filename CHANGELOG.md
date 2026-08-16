@@ -5,7 +5,7 @@ Cada entrada indica qué funcionalidad se añadió y cómo usarla.
 
 ## [0.3.3] - 2026-08-16 — Popups de aviso (toasts) para todos los errores
 
-### Añadido (commit `TBD`)
+### Añadido (commit `57b838f`)
 - **Sistema de toasts**: contenedor fijo arriba a la derecha, toasts de error (✕, borde frambuesa), éxito (✓) e información (ℹ), con cierre manual, auto-cierre a los 5 s y animación de entrada/salida. Responsive en móvil (ocupan todo el ancho).
 - **Capturadores globales**: `window.onerror` y `unhandledrejection` muestran un toast ante cualquier error no controlado en la página.
 
