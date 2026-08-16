@@ -33,23 +33,25 @@ const App = (() => {
   let productoActivo = null;
 
   // Estado del configurador de tartas
-  const PASOS = ['tamano', 'bizcocho', 'relleno', 'decoracion', 'extra'];
+  const PASOS = ['tamano', 'altura', 'bizcocho', 'relleno', 'decoracion', 'extra'];
   const PASOS_TITULO = {
     tamano: 'Elige el tamaño',
+    altura: 'Elige la altura',
     bizcocho: 'Elige el bizcocho',
     relleno: 'Elige el relleno',
     decoracion: 'Elige la decoración',
     extra: 'Añade extras (opcional)',
   };
   const PASOS_HINT = {
-    tamano: 'Cada tamaño tiene un precio base. Los siguientes pasos suman extras.',
+    tamano: 'Primero elige el diámetro de tu tarta. Cada tamaño tiene un precio base.',
+    altura: 'Ahora decide la altura de la tarta.',
     bizcocho: 'El sabor del bizcocho. Algunos tienen un pequeño suplemento.',
     relleno: 'El relleno de tu tarta.',
     decoracion: 'El estilo y la decoración. Puedes enviar tu foto de referencia al hacer el encargo.',
     extra: 'Trozos, fruta fresca... selecciona todos los que quieras.',
   };
   let catalogo = null;   // { tarta_base, grupos }
-  let configSel = {};    // { tamano: id, bizcocho: id, relleno: id, decoracion: id, extra: [ids] }
+  let configSel = {};    // { tamano: id, altura: id, bizcocho: id, relleno: id, decoracion: id, extra: [ids] }
   let configPaso = 0;
 
   const formatEUR = (n) =>
@@ -297,13 +299,14 @@ const App = (() => {
   };
 
   function esTartaBase(p) {
-    return catalogo && catalogo.tarta_base && String(p.id) === String(catalogo.tarta_base.id);
+    return p && (String(p.slug) === 'tarta-encargo' ||
+      (catalogo && catalogo.tarta_base && String(p.id) === String(catalogo.tarta_base.id)));
   }
 
   function calcularPrecioConfig() {
     if (!configSel.tamano) return 0;
     let total = Number(opcionPorId(configSel.tamano)?.precio || 0);
-    for (const campo of ['bizcocho', 'relleno', 'decoracion']) {
+    for (const campo of ['altura', 'bizcocho', 'relleno', 'decoracion']) {
       if (configSel[campo]) total += Number(opcionPorId(configSel[campo])?.precio || 0);
     }
     for (const id of configSel.extra || []) {
@@ -314,14 +317,16 @@ const App = (() => {
 
   function renderConfigSteps() {
     configSteps.innerHTML = PASOS.map((paso, i) => {
+      const alcanzable = PASOS.slice(0, i).every(configValidoPaso);
       const sel = i < configPaso || (i === configPaso && configValidoPaso(paso)) ? 'done' : '';
       const active = i === configPaso ? 'active' : '';
-      return `<button class="config-step ${active} ${sel}" data-paso="${i}">
+      return `<button class="config-step ${active} ${sel}" data-paso="${i}" ${alcanzable ? '' : 'disabled'}>
         <span class="num">${i + 1}</span>${PASOS_TITULO[paso].replace('Elige el ', '').replace(' (opcional)', '')}
       </button>`;
     }).join('');
     configSteps.querySelectorAll('[data-paso]').forEach((btn) => {
       btn.addEventListener('click', () => {
+        if (btn.disabled) return;
         configPaso = Number(btn.dataset.paso);
         renderConfig();
       });
@@ -398,7 +403,9 @@ const App = (() => {
     configPrev.hidden = configPaso === 0;
     configNext.hidden = esUltimo;
     configAdd.hidden = !esUltimo;
-    configAdd.disabled = !['tamano', 'bizcocho', 'relleno', 'decoracion'].every((p) => configValidoPaso(p));
+    configPrev.disabled = false;
+    configNext.disabled = !configValidoPaso(PASOS[configPaso]);
+    configAdd.disabled = !['tamano', 'altura', 'bizcocho', 'relleno', 'decoracion'].every((p) => configValidoPaso(p));
   }
 
   async function abrirConfig() {
@@ -422,7 +429,7 @@ const App = (() => {
   }
 
   function añadirTartaAlCarrito() {
-    if (!configSel.tamano || !configSel.bizcocho) return;
+    if (!['tamano', 'altura', 'bizcocho', 'relleno', 'decoracion'].every((p) => configSel[p])) return;
     const total = calcularPrecioConfig();
     const partes = [];
     for (const paso of PASOS) {
@@ -441,6 +448,7 @@ const App = (() => {
         precio: total,
         configuracion: {
           tamano: configSel.tamano,
+          altura: configSel.altura,
           bizcocho: configSel.bizcocho,
           relleno: configSel.relleno || null,
           decoracion: configSel.decoracion || null,

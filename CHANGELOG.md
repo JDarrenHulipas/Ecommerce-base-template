@@ -3,6 +3,15 @@
 Registro de todo lo que se sube al repositorio en cada `git push`.
 Cada entrada indica qué funcionalidad se añadió y cómo usarla.
 
+## [0.3.1] - 2026-08-16 — Configurador: tamaño y altura separados + pasos bloqueados
+
+### Mejoras del configurador de tartas (commit `TBD`)
+- **Tamaño y altura por separado**: el paso "tamaño" ahora pide primero el **diámetro** (Small 30 € / Medium 40 € / Large 50 €) y después la **altura** (Regular +0 € / Tall +15 €). Migración `db/migrations/002_tamano_altura.sql` + schema + seed actualizados.
+- **Sin saltos de paso**: no se puede avanzar ni hacer clic en un paso posterior hasta haber elegido uno en el paso actual; "Siguiente" queda deshabilitado hasta seleccionar.
+- El contrato `configuracion` del backend ahora exige `tamano` + `altura` y calcula el precio con ambos (verificado: Large + Tall + Cookies + Dulce de leche + Full Vintage + 3 extras = 83,50 €).
+
+**Cómo usarlo:** recargar con **Ctrl+F5**, abrir "Tarta personalizada a medida" y seguir los pasos en orden.
+
 ## [0.3.0] - 2026-08-16 — Configurador "Construye tu tarta"
 
 ### Configurador de tartas personalizadas (commit `TBD`)

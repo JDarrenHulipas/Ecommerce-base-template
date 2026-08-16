@@ -102,7 +102,8 @@ CREATE TABLE IF NOT EXISTS pedido_items (
 -- ============================================================
 -- Opciones del configurador de tartas (catálogo de la tienda)
 -- Grupo 'tamano' define el PRECIO BASE; el resto son deltas.
---   tamano    -> 1 elección (precio base, p.ej. Medium Regular 40 €)
+--   tamano    -> 1 elección (diámetro, precio base)
+--   altura    -> 1 elección (Regular +0 / Tall +15)
 --   bizcocho  -> 1 elección (delta sobre el tamaño)
 --   relleno   -> 1 elección (delta)
 --   decoracion-> 1 elección (delta)
@@ -111,7 +112,7 @@ CREATE TABLE IF NOT EXISTS pedido_items (
 CREATE TABLE IF NOT EXISTS opciones (
     id          BIGSERIAL,
     tienda_id   INT           NOT NULL REFERENCES tiendas(id) ON DELETE CASCADE,
-    grupo       VARCHAR(40)   NOT NULL CHECK (grupo IN ('tamano','bizcocho','relleno','decoracion','extra')),
+    grupo       VARCHAR(40)   NOT NULL CHECK (grupo IN ('tamano','altura','bizcocho','relleno','decoracion','extra')),
     nombre      VARCHAR(120)  NOT NULL,
     descripcion TEXT,
     precio      NUMERIC(10,2) NOT NULL DEFAULT 0 CHECK (precio >= 0),

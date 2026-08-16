@@ -110,13 +110,14 @@ UPDATE productos SET disponible = FALSE WHERE tienda_id = 1 AND slug IN
 DELETE FROM opciones WHERE tienda_id = 1;
 
 INSERT INTO opciones (tienda_id, grupo, nombre, descripcion, precio, posicion) VALUES
--- Tamaños (precio base de la tarta)
-(1, 'tamano',     'Small Regular (15 cm)',      'Tarta de 15 cm, altura regular.',          30.00, 1),
-(1, 'tamano',     'Small Tall (15 cm)',         'Tarta de 15 cm, alta.',                    45.00, 2),
-(1, 'tamano',     'Medium Regular (20 cm)',     'Tarta de 20 cm, altura regular.',          40.00, 3),
-(1, 'tamano',     'Medium Tall (20 cm)',        'Tarta de 20 cm, alta.',                    55.00, 4),
-(1, 'tamano',     'Large Regular (25 cm)',      'Tarta de 25 cm, altura regular.',          50.00, 5),
-(1, 'tamano',     'Large Tall (25 cm)',         'Tarta de 25 cm, alta.',                    65.00, 6),
+-- Tamaños (diámetro: precio base de la tarta)
+(1, 'tamano',     'Small (15 cm)',               'Tarta de 15 cm de diámetro.',           30.00, 1),
+(1, 'tamano',     'Medium (20 cm)',              'Tarta de 20 cm de diámetro.',           40.00, 2),
+(1, 'tamano',     'Large (25 cm)',               'Tarta de 25 cm de diámetro.',           50.00, 3),
+
+-- Alturas (suplemento sobre el tamaño)
+(1, 'altura',     'Regular',                     'Altura regular estándar.',               0.00, 1),
+(1, 'altura',     'Tall',                        'Tarta más alta (+15 €).',               15.00, 2),
 
 -- Bizcochos (sabor de la base)
 (1, 'bizcocho',   'Vainilla',                   'Bizcocho esponjoso de vainilla.',          0.00, 1),

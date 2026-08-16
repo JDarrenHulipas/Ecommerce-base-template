@@ -661,6 +661,11 @@ body {
 .config-step.done .num { background: var(--rosa); }
 .config-step.active { background: var(--rosa); border-color: var(--rosa); color: var(--blanco); }
 .config-step.active .num { background: var(--blanco); color: var(--rosa); }
+.config-step:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  pointer-events: none;
+}
 
 .config-body {
   padding: 24px 28px;

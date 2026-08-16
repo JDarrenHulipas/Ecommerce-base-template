@@ -21,7 +21,7 @@ router.get('/', async (req, res, next) => {
 // Si un item lleva `configuracion` (tarta personalizada), el precio se calcula
 // desde la tabla `opciones` (nunca se confía en el cliente) y se guarda el
 // snapshot en pedido_items.configuracion.
-// configuracion: { tamano, bizcocho, relleno, decoracion, extras: [opcion_id] }
+// configuracion: { tamano, altura, bizcocho, relleno, decoracion, extras: [opcion_id] }
 router.post('/', async (req, res, next) => {
   const client = req.db;
   try {
@@ -55,8 +55,8 @@ router.post('/', async (req, res, next) => {
     const opcionIds = [...new Set(
       items.flatMap((i) =>
         i.configuracion
-          ? [i.configuracion.tamano, i.configuracion.bizcocho, i.configuracion.relleno,
-             i.configuracion.decoracion, ...(i.configuracion.extras || [])]
+          ? [i.configuracion.tamano, i.configuracion.altura, i.configuracion.bizcocho,
+             i.configuracion.relleno, i.configuracion.decoracion, ...(i.configuracion.extras || [])]
           : []
       ).filter(Boolean)
     )];
@@ -77,18 +77,19 @@ router.post('/', async (req, res, next) => {
         const conf = i.configuracion;
         const pick = (id) => opciones.get(String(id));
         const t = pick(conf.tamano);
+        const a = pick(conf.altura);
         const b = pick(conf.bizcocho);
         const r = pick(conf.relleno);
         const d = pick(conf.decoracion);
         const ex = (conf.extras || []).map(pick);
 
-        if (!t || !b || !r || !d || ex.some((e) => !e)) {
+        if (!t || !a || !b || !r || !d || ex.some((e) => !e)) {
           throw Object.assign(new Error('Configuración de tarta inválida'), { status: 400 });
         }
 
-        unitario = Number(t.precio) + Number(b.precio) + Number(r.precio) + Number(d.precio) +
+        unitario = Number(t.precio) + Number(a.precio) + Number(b.precio) + Number(r.precio) + Number(d.precio) +
                    ex.reduce((s, e) => s + Number(e.precio), 0);
-        nombreLinea = `Tarta: ${t.nombre} · ${b.nombre} · ${r.nombre} · ${d.nombre}` +
+        nombreLinea = `Tarta: ${t.nombre} · ${a.nombre} · ${b.nombre} · ${r.nombre} · ${d.nombre}` +
                       (ex.length ? ` + ${ex.map((e) => e.nombre).join(' + ')}` : '');
       } else {
         const prod = precios.get(String(i.producto_id));
