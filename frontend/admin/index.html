@@ -65,8 +65,13 @@
                 <input type="checkbox" id="np-disponible" checked aria-label="Disponible">
                 Disponible
               </label>
-              <label class="producto-full">Imagen (URL)
-                <input type="url" id="np-img" placeholder="https://..." aria-label="URL de la imagen del producto">
+              <label class="producto-full">Imagen
+                <span class="img-cell">
+                  <span class="img-preview" id="np-img-preview"><span class="img-none">Sin imagen</span></span>
+                  <input type="file" id="np-file" accept="image/*" hidden>
+                  <button type="button" id="np-img-btn" class="img-btn">Subir imagen</button>
+                  <button type="button" id="np-img-clear" class="img-clear" hidden>Quitar</button>
+                </span>
               </label>
               <label class="producto-full">Descripción
                 <input type="text" id="np-desc" aria-label="Descripción del producto">
@@ -85,7 +90,7 @@
                 <th>Producto</th>
                 <th>Ingredientes</th>
                 <th>Categoría</th>
-                <th>Imagen (URL)</th>
+                <th>Imagen</th>
                 <th>Precio (€)</th>
                 <th>Stock</th>
                 <th>Disponible</th>

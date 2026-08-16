@@ -340,8 +340,76 @@
   cursor: wait;
 }
 
-/* --- Pedidos y contactos --- */
-.p-email {
+/* --- Celda de imagen (subir / quitar) --- */
+.img-cell {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.4rem;
+  min-width: 120px;
+}
+
+.img-preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 96px;
+  height: 64px;
+  overflow: hidden;
+  border: 1px solid #d9c4b8;
+  border-radius: 8px;
+  background: #faf3ee;
+}
+
+.img-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.img-none {
+  font-size: 0.75rem;
+  color: #a08a7d;
+}
+
+.img-btn {
+  padding: 0.35rem 0.7rem;
+  border: 1px solid var(--vino, #6b2d3a);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--vino, #6b2d3a);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.85rem;
+}
+
+.img-btn:hover {
+  background: var(--vino, #6b2d3a);
+  color: #fff;
+}
+
+.img-btn:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+
+.img-clear {
+  padding: 0.25rem 0.6rem;
+  border: 1px solid #c65d5d;
+  border-radius: 6px;
+  background: transparent;
+  color: #b3261e;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.8rem;
+}
+
+.img-clear:hover {
+  background: #b3261e;
+  color: #fff;
+}
+
+/* --- Pedidos y contactos --- */.p-email {
   font-size: 0.8rem;
   color: var(--vino, #6b2d3a);
   text-decoration: none;

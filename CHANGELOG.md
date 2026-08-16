@@ -3,6 +3,18 @@
 Registro de todo lo que se sube al repositorio en cada `git push`.
 Cada entrada indica qué funcionalidad se añadió y cómo usarla.
 
+## [0.10.0] - 2026-08-16 — Subida de imagen por botón en el panel admin
+
+### Funcionalidad añadida
+- **`POST /api/admin/imagenes`** (multipart, campo `file`): sube una imagen (JPEG/PNG/WebP/GIF, máx. 5 MB), la guarda en `UPLOAD_DIR` y devuelve su URL relativa `/api/imagenes/<archivo>` (201). Rechaza archivos que no sean imágenes (400).
+- **`DELETE /api/admin/imagenes/:archivo`**: borra un archivo subido (404 si no existe). Se usa al "Quitar" la imagen.
+- **`GET /api/imagenes/<archivo>`** (público): sirve las imágenes subidas. Se monta **antes** del middleware de tenant para que funcionen desde `<img src>` en el navegador.
+- **Panel admin**: el campo de URL de imagen se sustituye por un botón **"Subir imagen"** (con preview y botón "Quitar") en cada fila y en el formulario "Añadir producto nuevo". Al subir, la imagen se guarda automáticamente en el producto (PATCH) o se usa en la creación (campo `imagen`).
+- **Config**: nueva variable `UPLOAD_DIR` (por defecto `backend/uploads`); en Docker se monta un volumen nombrado `uploads:/app/uploads` y `backend/uploads/` se añade a `.gitignore`.
+- **Tests**: suite completa **57/57** (46 integración + 11 E2E). Nuevos tests de subida/borrado (archivo en disco, servido por `/api/imagenes`, 400 en no-imagen, 401 sin token, 404 en borrado) y el E2E de creación ahora sube un archivo real desde el navegador y limpia producto e imagen.
+
+**Cómo usarlo:** en `/admin/`, pestaña Productos, pulsa **"Subir imagen"** en una fila o en el formulario, elige el archivo y se aplica al producto al guardar/crear. "Quitar" borra la imagen del producto y el archivo subido.
+
 ## [0.9.0] - 2026-08-16 — Imagen de producto en el panel admin
 
 ### Funcionalidad añadida

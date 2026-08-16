@@ -1,9 +1,37 @@
 const { Router } = require('express');
 const crypto = require('crypto');
-const { adminPassword, adminSecret } = require('../config/env');
+const fs = require('fs');
+const path = require('path');
+const multer = require('multer');
+const { adminPassword, adminSecret, uploadDir } = require('../config/env');
 const { firmarToken, adminAuth } = require('../middleware/adminAuth');
 
 const router = Router();
+
+// Subida de imágenes de producto: se guardan en uploadDir y se sirven en /api/imagenes/<archivo>
+const EXTENSIONES = {
+  'image/jpeg': '.jpg',
+  'image/png': '.png',
+  'image/webp': '.webp',
+  'image/gif': '.gif',
+};
+
+fs.mkdirSync(uploadDir, { recursive: true });
+
+const upload = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => cb(null, uploadDir),
+    filename: (req, file, cb) => {
+      const ext = EXTENSIONES[file.mimetype] || '.img';
+      cb(null, `${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`);
+    },
+  }),
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    if (EXTENSIONES[file.mimetype]) return cb(null, true);
+    cb(new Error('Solo se permiten imágenes (JPEG, PNG, WebP o GIF)'));
+  },
+});
 
 // POST /api/admin/login  -> { password } => { token }
 router.post('/login', (req, res) => {
@@ -98,8 +126,8 @@ router.patch('/productos/:id', async (req, res, next) => {
     }
     if ('imagen_s3' in req.body) {
       const img = String(req.body.imagen_s3 ?? '').trim();
-      if (img && !/^https?:\/\//.test(img)) {
-        return res.status(400).json({ error: 'imagen_s3 debe ser una URL válida (http/https)' });
+      if (img && !esUrlImagen(img)) {
+        return res.status(400).json({ error: 'imagen_s3 debe ser una URL válida (http/https) o una ruta /...' });
       }
       campos.imagen_s3 = img || null;
     }
@@ -190,13 +218,13 @@ router.post('/productos', async (req, res, next) => {
     }
     if (b.imagen_s3 !== undefined) {
       const img = String(b.imagen_s3 ?? '').trim();
-      if (img && !/^https?:\/\//.test(img)) {
-        return res.status(400).json({ error: 'imagen_s3 debe ser una URL válida (http/https)' });
+      if (img && !esUrlImagen(img)) {
+        return res.status(400).json({ error: 'imagen_s3 debe ser una URL válida (http/https) o una ruta /...' });
       }
     } else if (b.imagen !== undefined) {
       const img = String(b.imagen ?? '').trim();
-      if (img && !/^https?:\/\//.test(img)) {
-        return res.status(400).json({ error: 'imagen debe ser una URL válida (http/https)' });
+      if (img && !esUrlImagen(img)) {
+        return res.status(400).json({ error: 'imagen debe ser una URL válida (http/https) o una ruta /...' });
       }
     }
 
@@ -322,6 +350,33 @@ router.get('/contactos', async (req, res, next) => {
   }
 });
 
+// POST /api/admin/imagenes -> sube una imagen (multipart, campo "file") y devuelve su URL
+router.post('/imagenes', (req, res) => {
+  upload.single('file')(req, res, (err) => {
+    if (err) {
+      return res.status(400).json({ error: err.message || 'Error al subir la imagen' });
+    }
+    if (!req.file) {
+      return res.status(400).json({ error: 'Se requiere un archivo (campo "file")' });
+    }
+    res.status(201).json({ url: `/api/imagenes/${req.file.filename}` });
+  });
+});
+
+// DELETE /api/admin/imagenes/:archivo -> borra una imagen subida
+router.delete('/imagenes/:archivo', (req, res) => {
+  const nombre = path.basename(String(req.params.archivo));
+  if (!/^[a-zA-Z0-9_-]+\.[a-z]+$/i.test(nombre)) {
+    return res.status(400).json({ error: 'Nombre de archivo no válido' });
+  }
+  fs.unlink(path.join(uploadDir, nombre), (err) => {
+    if (err) {
+      return res.status(404).json({ error: 'Archivo no encontrado' });
+    }
+    res.json({ ok: true });
+  });
+});
+
 function slugify(texto) {
   return String(texto || '')
     .normalize('NFD')
@@ -330,6 +385,11 @@ function slugify(texto) {
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')
     .slice(0, 120);
+}
+
+// Valida que un valor de imagen sea una URL http(s) o una ruta relativa (/) de la propia API
+function esUrlImagen(valor) {
+  return /^https?:\/\//i.test(valor) || valor.startsWith('/');
 }
 
 module.exports = router;

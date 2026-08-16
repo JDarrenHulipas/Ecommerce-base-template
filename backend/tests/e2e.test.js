@@ -9,6 +9,9 @@
 const { test, before, after } = require('node:test');
 const assert = require('node:assert/strict');
 const { Client } = require('pg');
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
 
 const { databaseUrl, adminPassword } = require('../src/config/env');
 
@@ -367,12 +370,20 @@ test('E2E: el panel admin edita el contenido de la portada y se refleja en la ti
   }
 });
 
-test('E2E: el panel admin crea un producto nuevo desde el formulario', { timeout: 120000 }, async (t) => {
+test('E2E: el panel admin crea un producto nuevo con imagen subida', { timeout: 120000 }, async (t) => {
   if (!ready) { t.skip(skipReason); return; }
   if (!adminPassword) { t.skip('ADMIN_PASSWORD no configurado en .env'); return; }
 
   const { context, page } = await nuevaPagina();
   const nombre = `E2E Producto ${Date.now()}`;
+  const archivo = path.join(os.tmpdir(), `e2e-img-${Date.now()}.png`);
+  fs.writeFileSync(
+    archivo,
+    Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+      'base64'
+    )
+  );
   try {
     await page.goto(BASE + '/admin/', { waitUntil: 'domcontentloaded' });
     await page.fill('#admin-password', adminPassword);
@@ -384,7 +395,10 @@ test('E2E: el panel admin crea un producto nuevo desde el formulario', { timeout
     await page.fill('#np-precio', '12.5');
     await page.fill('#np-stock', '3');
     await page.fill('#np-categoria', 'Tartas E2E');
-    await page.fill('#np-img', 'https://img.example.com/e2e.jpg');
+    // Subir imagen por botón (no URL): aparece el preview antes de crear
+    await page.setInputFiles('#np-file', archivo);
+    await page.waitForSelector('#np-img-preview img');
+
     await page.click('#producto-form button[type="submit"]');
 
     await page.waitForFunction(
@@ -392,20 +406,28 @@ test('E2E: el panel admin crea un producto nuevo desde el formulario', { timeout
       nombre
     );
 
-    // El producto aparece en la tabla
+    // El producto aparece en la tabla con su imagen
     const row = page.locator(`#admin-tbody tr:has(.p-nombre:text-is("${nombre}"))`);
     await row.waitFor();
     const id = await row.getAttribute('data-id');
     assert.ok(id, 'el producto creado debería tener id');
+    const imgSrc = await row.locator('.img-preview img').getAttribute('src');
+    assert.ok(imgSrc && imgSrc.startsWith('/api/imagenes/'), `imagen esperada en /api/imagenes/, se obtuvo: ${imgSrc}`);
 
-    // Limpieza vía API
+    // Limpieza vía API: producto y archivo subido
     const token = await page.evaluate(() => localStorage.getItem('bakery_admin_token'));
     const del = await fetch(BASE + `/api/admin/productos/${id}`, {
       method: 'DELETE',
       headers: { 'X-Tenant-Slug': TENANT, Authorization: `Bearer ${token}` },
     });
     assert.equal(del.status, 200, 'debería eliminarse el producto de prueba');
+    const arch = await fetch(BASE + `/api/admin/imagenes/${imgSrc.replace('/api/imagenes/', '')}`, {
+      method: 'DELETE',
+      headers: { 'X-Tenant-Slug': TENANT, Authorization: `Bearer ${token}` },
+    });
+    assert.equal(arch.status, 200, 'debería borrarse el archivo de la imagen');
   } finally {
     await context.close();
+    fs.rmSync(archivo, { force: true });
   }
 });

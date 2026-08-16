@@ -19,6 +19,9 @@ RUN cd backend && npm ci --omit=dev
 COPY backend/ ./backend/
 COPY frontend/ ./frontend/
 
+# Carpeta de imágenes subidas (volumen en docker-compose)
+RUN mkdir -p /app/uploads && chown -R node:node /app/uploads
+
 # El contenedor debe ser ejecutado como usuario no-root
 USER node
 

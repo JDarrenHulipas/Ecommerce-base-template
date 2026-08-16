@@ -9,9 +9,11 @@
 const { test, before, after } = require('node:test');
 const assert = require('node:assert/strict');
 const { Client } = require('pg');
+const fs = require('fs');
+const path = require('path');
 
 const app = require('../src/app');
-const { databaseUrl } = require('../src/config/env');
+const { databaseUrl, uploadDir } = require('../src/config/env');
 
 const T = { koko: 'kokorocakes', maribel: 'dulces-maribel' };
 
@@ -500,4 +502,76 @@ test('admin: GET /contactos lista las consultas de la tienda activa', async () =
   } finally {
     await client.end();
   }
+});
+
+// ---------------------------------------------------------------------------
+// POST / DELETE /api/admin/imagenes (subida de imagen por botón)
+// ---------------------------------------------------------------------------
+
+test('admin: POST /imagenes sube la imagen y DELETE la borra', async () => {
+  const png = Buffer.from(
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+    'base64'
+  );
+  const fd = new FormData();
+  fd.append('file', new Blob([png], { type: 'image/png' }), 'prueba.png');
+
+  const res = await fetch(baseURL + '/api/admin/imagenes', {
+    method: 'POST',
+    headers: { 'X-Tenant-Slug': T.koko, Authorization: `Bearer ${token}` },
+    body: fd,
+  });
+  assert.equal(res.status, 201);
+  const data = await res.json();
+  assert.match(data.url, /^\/api\/imagenes\/\d+-[a-z0-9-]+\.png$/, 'URL relativa de la imagen');
+
+  // El archivo existe en disco
+  const nombre = data.url.replace('/api/imagenes/', '');
+  const ruta = path.join(uploadDir, nombre);
+  assert.ok(fs.existsSync(ruta), 'el archivo debería existir en uploadDir');
+
+  // Se sirve por el endpoint público /api/imagenes
+  const servida = await fetch(baseURL + data.url);
+  assert.equal(servida.status, 200);
+
+  // DELETE borra el archivo
+  const del = await fetch(baseURL + `/api/admin/imagenes/${nombre}`, {
+    method: 'DELETE',
+    headers: { 'X-Tenant-Slug': T.koko, Authorization: `Bearer ${token}` },
+  });
+  assert.equal(del.status, 200);
+  assert.ok(!fs.existsSync(ruta), 'el archivo debería haberse borrado');
+});
+
+test('admin: POST /imagenes rechaza archivos que no son imágenes', async () => {
+  const fd = new FormData();
+  fd.append('file', new Blob(['esto no es una imagen'], { type: 'text/plain' }), 'nota.txt');
+
+  const res = await fetch(baseURL + '/api/admin/imagenes', {
+    method: 'POST',
+    headers: { 'X-Tenant-Slug': T.koko, Authorization: `Bearer ${token}` },
+    body: fd,
+  });
+  assert.equal(res.status, 400);
+  const data = await res.json().catch(() => ({}));
+  assert.match(data.error, /imagen|solo se permiten/i);
+});
+
+test('admin: POST /imagenes exige autenticación', async () => {
+  const fd = new FormData();
+  fd.append('file', new Blob(['x'], { type: 'image/png' }), 'x.png');
+  const res = await fetch(baseURL + '/api/admin/imagenes', {
+    method: 'POST',
+    headers: { 'X-Tenant-Slug': T.koko },
+    body: fd,
+  });
+  assert.equal(res.status, 401);
+});
+
+test('admin: DELETE /imagenes de un archivo inexistente devuelve 404', async () => {
+  const res = await fetch(baseURL + '/api/admin/imagenes/999999-no-existe.png', {
+    method: 'DELETE',
+    headers: { 'X-Tenant-Slug': T.koko, Authorization: `Bearer ${token}` },
+  });
+  assert.equal(res.status, 404);
 });

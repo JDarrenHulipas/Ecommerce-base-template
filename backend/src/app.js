@@ -2,6 +2,7 @@ const express = require('express');
 const path = require('path');
 const cors = require('cors');
 const resolveTenant = require('./middleware/tenant');
+const { uploadDir } = require('./config/env');
 
 const app = express();
 
@@ -35,6 +36,11 @@ app.use(
 app.use(
   express.static(path.join(__dirname, '..', '..', 'frontend', 'public'))
 );
+
+// Imágenes subidas por el panel admin (sirve /api/imagenes/<archivo>).
+// Se monta ANTES del middleware de tenant: son archivos públicos y no deben
+// depender de la resolución de tienda (p. ej. en img src del navegador).
+app.use('/api/imagenes', express.static(uploadDir, { maxAge: '7d', immutable: true }));
 
 // El middleware de tenant se ejecuta para todas las rutas de la API
 app.use('/api', resolveTenant);

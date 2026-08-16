@@ -35,10 +35,16 @@ const AdminApp = (() => {
       '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
     }[c]));
 
+  const previewImagen = (url) =>
+    url
+      ? `<img src="${escapeHtml(url)}" alt="Imagen del producto">`
+      : '<span class="img-none">Sin imagen</span>';
+
   let productos = [];
   let valoresContenido = {};
   let pedidos = [];
   let contactos = [];
+  let nuevaImagen = '';
 
   const token = () => localStorage.getItem(TOKEN_KEY);
   const tenantSlug = () => localStorage.getItem(TENANT_KEY) || 'kokorocakes';
@@ -100,7 +106,14 @@ const AdminApp = (() => {
         </td>
         <td><textarea class="edit-ing" rows="3" aria-label="Ingredientes del producto">${escapeHtml(p.ingredientes || '')}</textarea></td>
         <td>${escapeHtml(p.categoria || '—')}</td>
-        <td><input type="url" class="edit-img" value="${escapeHtml(p.imagen_s3 || '')}" placeholder="https://..." aria-label="URL de la imagen"></td>
+        <td>
+          <span class="img-cell" data-img="${escapeHtml(p.imagen_s3 || '')}">
+            <span class="img-preview">${previewImagen(p.imagen_s3)}</span>
+            <input type="file" class="file-img" accept="image/*" hidden>
+            <button type="button" class="img-btn" data-i="${i}">Subir imagen</button>
+            ${p.imagen_s3 ? `<button type="button" class="img-clear" data-i="${i}">Quitar</button>` : ''}
+          </span>
+        </td>
         <td><input type="number" class="edit-precio" step="0.01" min="0" value="${p.precio}" aria-label="Precio"></td>
         <td><input type="number" class="edit-stock" step="1" min="0" value="${p.stock}" aria-label="Stock"></td>
         <td><input type="checkbox" class="edit-disp" ${p.disponible ? 'checked' : ''} aria-label="Disponible"></td>
@@ -117,6 +130,17 @@ const AdminApp = (() => {
     tbody.querySelectorAll('.delete-btn').forEach((btn) => {
       btn.addEventListener('click', () => eliminarFila(btn));
     });
+    tbody.querySelectorAll('.img-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        btn.closest('tr').querySelector('.file-img').click();
+      });
+    });
+    tbody.querySelectorAll('.file-img').forEach((input) => {
+      input.addEventListener('change', () => subirImagen(input));
+    });
+    tbody.querySelectorAll('.img-clear').forEach((btn) => {
+      btn.addEventListener('click', () => quitarImagen(btn));
+    });
   }
 
   async function guardarFila(btn) {
@@ -127,7 +151,6 @@ const AdminApp = (() => {
       nombre: tr.querySelector('.edit-nombre').value.trim(),
       descripcion: tr.querySelector('.edit-desc').value,
       ingredientes: tr.querySelector('.edit-ing').value,
-      imagen_s3: tr.querySelector('.edit-img').value.trim() || null,
       precio: Number(tr.querySelector('.edit-precio').value),
       stock: Number(tr.querySelector('.edit-stock').value),
       disponible: tr.querySelector('.edit-disp').checked,
@@ -173,12 +196,71 @@ const AdminApp = (() => {
     }
   }
 
+  async function subirImagen(input) {
+    const tr = input.closest('tr');
+    const p = productos[Number(tr.querySelector('.img-btn').dataset.i)];
+    const file = input.files[0];
+    if (!file) return;
+    const btn = tr.querySelector('.img-btn');
+    btn.disabled = true;
+    btn.textContent = 'Subiendo…';
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await fetch('/api/admin/imagenes', {
+        method: 'POST',
+        headers: { 'X-Tenant-Slug': tenantSlug(), Authorization: `Bearer ${token()}` },
+        body: fd,
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || `Error ${res.status}`);
+      const guardado = await request(`/api/admin/productos/${p.id}`, {
+        method: 'PATCH',
+        body: { imagen_s3: data.url },
+      });
+      p.imagen_s3 = guardado.imagen_s3;
+      setMsg(msg, `Imagen subida a "${p.nombre}".`, true);
+      render();
+    } catch (err) {
+      setMsg(msg, `No se pudo subir la imagen: ${err.message}`);
+      btn.disabled = false;
+      btn.textContent = 'Subir imagen';
+    } finally {
+      input.value = '';
+    }
+  }
+
+  async function quitarImagen(btn) {
+    const tr = btn.closest('tr');
+    const p = productos[Number(btn.dataset.i)];
+    const url = p.imagen_s3 || '';
+    btn.disabled = true;
+    try {
+      const guardado = await request(`/api/admin/productos/${p.id}`, {
+        method: 'PATCH',
+        body: { imagen_s3: null },
+      });
+      if (url.startsWith('/api/imagenes/')) {
+        fetch(`/api/admin/imagenes/${url.replace('/api/imagenes/', '')}`, {
+          method: 'DELETE',
+          headers: { 'X-Tenant-Slug': tenantSlug(), Authorization: `Bearer ${token()}` },
+        }).catch(() => {});
+      }
+      p.imagen_s3 = guardado.imagen_s3;
+      setMsg(msg, `Imagen quitada de "${p.nombre}".`, true);
+      render();
+    } catch (err) {
+      setMsg(msg, `No se pudo quitar: ${err.message}`);
+      btn.disabled = false;
+    }
+  }
+
   async function crearProducto() {
     const body = {
       nombre: $('#np-nombre').value.trim(),
       slug: $('#np-slug').value.trim() || undefined,
       categoria: $('#np-categoria').value.trim() || undefined,
-      imagen: $('#np-img').value.trim() || undefined,
+      imagen: nuevaImagen || undefined,
       precio: Number($('#np-precio').value),
       stock: Number($('#np-stock').value),
       disponible: $('#np-disponible').checked,
@@ -196,6 +278,9 @@ const AdminApp = (() => {
       $('#producto-form').reset();
       $('#np-disponible').checked = true;
       $('#nuevo-producto').removeAttribute('open');
+      nuevaImagen = '';
+      $('#np-img-preview').innerHTML = '<span class="img-none">Sin imagen</span>';
+      $('#np-img-clear').hidden = true;
       productos.push(creado);
       setMsg(msg, `Producto "${creado.nombre}" creado.`, true);
       render();
@@ -363,6 +448,46 @@ const AdminApp = (() => {
     $('#producto-form').addEventListener('submit', (e) => {
       e.preventDefault();
       crearProducto();
+    });
+
+    $('#np-img-btn').addEventListener('click', () => $('#np-file').click());
+    $('#np-file').addEventListener('change', async () => {
+      const file = $('#np-file').files[0];
+      if (!file) return;
+      const btn = $('#np-img-btn');
+      btn.disabled = true;
+      btn.textContent = 'Subiendo…';
+      try {
+        const fd = new FormData();
+        fd.append('file', file);
+        const res = await fetch('/api/admin/imagenes', {
+          method: 'POST',
+          headers: { 'X-Tenant-Slug': tenantSlug(), Authorization: `Bearer ${token()}` },
+          body: fd,
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || `Error ${res.status}`);
+        nuevaImagen = data.url;
+        $('#np-img-preview').innerHTML = previewImagen(nuevaImagen);
+        $('#np-img-clear').hidden = false;
+      } catch (err) {
+        setMsg(msg, `No se pudo subir la imagen: ${err.message}`);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Subir imagen';
+        $('#np-file').value = '';
+      }
+    });
+    $('#np-img-clear').addEventListener('click', () => {
+      if (nuevaImagen.startsWith('/api/imagenes/')) {
+        fetch(`/api/admin/imagenes/${nuevaImagen.replace('/api/imagenes/', '')}`, {
+          method: 'DELETE',
+          headers: { 'X-Tenant-Slug': tenantSlug(), Authorization: `Bearer ${token()}` },
+        }).catch(() => {});
+      }
+      nuevaImagen = '';
+      $('#np-img-preview').innerHTML = '<span class="img-none">Sin imagen</span>';
+      $('#np-img-clear').hidden = true;
     });
 
     $('#admin-logout').addEventListener('click', () => {

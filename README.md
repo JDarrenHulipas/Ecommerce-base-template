@@ -177,6 +177,9 @@ Endpoints (el tenant se resuelve por cabecera `X-Tenant-Slug` en desarrollo):
 | GET | `/api/admin/contactos` | Consultas del formulario de contacto de la tienda activa (requiere token) |
 | GET | `/api/admin/contenido` | Textos editables de la portada de la tienda activa (requiere token) |
 | PUT | `/api/admin/contenido` | Guarda los textos de la portada `{ contenido: [{ clave, valor }] }` (requiere token) |
+| POST | `/api/admin/imagenes` | Sube una imagen (multipart, campo `file`; JPEG/PNG/WebP/GIF, máx. 5 MB) → `{ url: "/api/imagenes/<archivo>" }` (requiere token) |
+| DELETE | `/api/admin/imagenes/:archivo` | Borra un archivo de imagen subido; 404 si no existe (requiere token) |
+| GET | `/api/imagenes/<archivo>` | Público: sirve las imágenes subidas por el admin |
 
 > El panel admin vive en `http://localhost:3000/admin/` y guarda el JWT en
 > LocalStorage. Solo edita la tienda seleccionada (RLS): los productos de otras
@@ -192,7 +195,7 @@ La tarjeta **"Construye tu tarta"** abre un asistente de 6 pasos (tamaño, altur
 cd backend
 npm test          # toda la suite de integración (health, productos, pedidos, opciones, contactos, admin)
 npm run test:api  # solo api.test.js + admin.test.js
-npm run test:admin# solo admin.test.js
+npm run test:admin # solo admin.test.js
 npm run test:e2e  # Playwright (requiere el servidor en :3000 y Chromium descargado)
 ```
 

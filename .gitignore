@@ -17,6 +17,9 @@ npm-debug.log*
 # Datos locales de Docker (PostgreSQL)
 docker/postgres-data/
 
+# Imágenes subidas por el panel admin (desarrollo local)
+backend/uploads/
+
 # IDE / SO
 .vscode/
 .idea/
