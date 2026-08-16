@@ -5,7 +5,7 @@ Cada entrada indica qué funcionalidad se añadió y cómo usarla.
 
 ## [0.4.0] - 2026-08-16 — Formulario de contacto real
 
-### Funcionalidad añadida (commit `TBD`)
+### Funcionalidad añadida (commit `2a7d5c6`)
 - **Tabla `contactos`** (migración `db/migrations/003_contactos.sql`): consultas del formulario por tienda, con RLS + política `tenant_isolation` y privilegios para `bakery_api`.
 - **API**: `POST /api/contactos` guarda `{ nombre, email, mensaje }` con validación (requiere los 3 campos y email con formato válido → 400 en caso contrario, 201 al crearlo) y `GET /api/contactos` lista las consultas de la tienda activa (RLS aísla por tenant).
 - **Frontend**: el formulario "Contacto" ahora envía de verdad al backend (antes solo mostraba un toast falso), desactiva el botón mientras envía, muestra toast de éxito al guardar y toast de error si falla. Nuevo método `Api.enviarContacto()`.
