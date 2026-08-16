@@ -28,6 +28,7 @@ app.get('/api/health', (req, res) => {
 app.use('/api/productos', require('./routes/productos'));
 app.use('/api/pedidos', require('./routes/pedidos'));
 app.use('/api/opciones', require('./routes/opciones'));
+app.use('/api/contactos', require('./routes/contactos'));
 
 // Manejo de errores centralizado
 app.use((err, req, res, next) => {

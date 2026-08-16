@@ -22,5 +22,10 @@ const Api = (() => {
         method: 'POST',
         body: JSON.stringify(pedido),
       }),
+    enviarContacto: (consulta) =>
+      request('/contactos', {
+        method: 'POST',
+        body: JSON.stringify(consulta),
+      }),
   };
 })();

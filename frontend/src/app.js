@@ -580,10 +580,22 @@ const App = (() => {
       }
     });
 
-    $('#contact-form').addEventListener('submit', (e) => {
+    $('#contact-form').addEventListener('submit', async (e) => {
       e.preventDefault();
-      notify('Gracias por tu consulta. Te responderemos muy pronto.', 'success');
-      e.target.reset();
+      const nombre = $('#contact-nombre').value.trim();
+      const email = $('#contact-email').value.trim();
+      const mensaje = $('#contact-mensaje').value.trim();
+      const btn = $('#contact-submit');
+      btn.disabled = true;
+      try {
+        await Api.enviarContacto({ nombre, email, mensaje });
+        notify('¡Consulta enviada! Te responderemos muy pronto.', 'success');
+        e.target.reset();
+      } catch (err) {
+        notify(err.message || 'No se pudo enviar tu consulta. Inténtalo de nuevo.');
+      } finally {
+        btn.disabled = false;
+      }
     });
   }
 

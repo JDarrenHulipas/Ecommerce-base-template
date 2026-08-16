@@ -3,6 +3,16 @@
 Registro de todo lo que se sube al repositorio en cada `git push`.
 Cada entrada indica qué funcionalidad se añadió y cómo usarla.
 
+## [0.4.0] - 2026-08-16 — Formulario de contacto real
+
+### Funcionalidad añadida (commit `TBD`)
+- **Tabla `contactos`** (migración `db/migrations/003_contactos.sql`): consultas del formulario por tienda, con RLS + política `tenant_isolation` y privilegios para `bakery_api`.
+- **API**: `POST /api/contactos` guarda `{ nombre, email, mensaje }` con validación (requiere los 3 campos y email con formato válido → 400 en caso contrario, 201 al crearlo) y `GET /api/contactos` lista las consultas de la tienda activa (RLS aísla por tenant).
+- **Frontend**: el formulario "Contacto" ahora envía de verdad al backend (antes solo mostraba un toast falso), desactiva el botón mientras envía, muestra toast de éxito al guardar y toast de error si falla. Nuevo método `Api.enviarContacto()`.
+- **Tests**: 3 nuevos (creación + listado, rechazo de datos inválidos, aislamiento por tenant). Suite completa: **15/15**.
+
+**Cómo usarlo:** recargar con **Ctrl+F5**, rellenar el formulario de contacto y enviar. La consulta queda guardada en `contactos` (consultable con `GET /api/contactos`).
+
 ## [0.3.5] - 2026-08-16 — En el último paso se muestra "Añadir al carrito" sin "Siguiente"
 
 ### Corregido (commit `a49544d`)

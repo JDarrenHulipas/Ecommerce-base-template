@@ -222,3 +222,72 @@ test('pedidos: rechaza pedido con producto inexistente (rollback)', async () => 
     await client.end();
   }
 });
+
+// ---------------------------------------------------------------------------
+// POST /api/contactos
+// ---------------------------------------------------------------------------
+
+test('contactos: crea una consulta y aparece en el listado', async () => {
+  const email = `contacto-${Date.now()}@example.com`;
+  const { status, body } = await api('/api/contactos', {
+    method: 'POST',
+    body: { nombre: 'Cliente Test', email, mensaje: 'Quiero una tarta de cumpleaños para el sábado.' },
+  });
+
+  assert.equal(status, 201);
+  assert.ok(body.id);
+  assert.ok(body.creado);
+
+  const listado = await api('/api/contactos');
+  assert.equal(listado.status, 200);
+  assert.equal(listado.body.tienda, T.koko);
+  assert.ok(Array.isArray(listado.body.contactos));
+  assert.ok(listado.body.contactos.some((c) => c.email === email), 'la consulta debería aparecer en el listado');
+
+  // Limpieza: borra la consulta de prueba (con RLS activado para la tienda)
+  const client = new Client({ connectionString: databaseUrl });
+  await client.connect();
+  try {
+    await client.query('SELECT app.set_tenant(1)');
+    await client.query('DELETE FROM contactos WHERE email = $1', [email]);
+  } finally {
+    await client.end();
+  }
+});
+
+test('contactos: rechaza consultas sin nombre, email o mensaje', async () => {
+  const casos = [
+    { email: 'a@example.com', mensaje: 'hola' },              // sin nombre
+    { nombre: 'Ana', mensaje: 'hola' },                       // sin email
+    { nombre: 'Ana', email: 'a@example.com' },                // sin mensaje
+    { nombre: 'Ana', email: 'email-malo', mensaje: 'hola' },  // email inválido
+  ];
+
+  for (const body of casos) {
+    const { status } = await api('/api/contactos', { method: 'POST', body });
+    assert.equal(status, 400, `debería rechazar: ${JSON.stringify(body)}`);
+  }
+});
+
+test('contactos: aislamiento por tenant en el listado', async () => {
+  const email = `contacto-aisla-${Date.now()}@example.com`;
+  await api('/api/contactos', {
+    method: 'POST',
+    body: { nombre: 'Aislamiento', email, mensaje: 'Solo koko debe ver esta consulta.' },
+  });
+
+  const koko = await api('/api/contactos');
+  const maribel = await api('/api/contactos', { tenant: T.maribel });
+
+  assert.ok(koko.body.contactos.some((c) => c.email === email), 'koko debería ver su consulta');
+  assert.ok(!maribel.body.contactos.some((c) => c.email === email), 'maribel no debería ver consultas de koko');
+
+  const client = new Client({ connectionString: databaseUrl });
+  await client.connect();
+  try {
+    await client.query('SELECT app.set_tenant(1)');
+    await client.query('DELETE FROM contactos WHERE email = $1', [email]);
+  } finally {
+    await client.end();
+  }
+});
