@@ -180,7 +180,7 @@ const App = (() => {
       for (const item of items) {
         const div = document.createElement('div');
         div.className = 'drawer-item';
-        const itemKey = item.key ?? String(item.producto_id);
+        const itemKey = encodeURIComponent(item.key ?? String(item.producto_id));
         div.innerHTML = `
           <div class="di-thumb" data-thumb="${itemKey}"></div>
           <div class="di-info">
@@ -208,7 +208,7 @@ const App = (() => {
 
         div.querySelectorAll('[data-action]').forEach((btn) => {
           btn.addEventListener('click', () => {
-            const key = btn.dataset.id;
+            const key = decodeURIComponent(btn.dataset.id);
             const action = btn.dataset.action;
             if (action === 'incr') {
               CartStore.setQty(key, CartStore.load().find((i) => (i.key ?? String(i.producto_id)) === key).cantidad + 1);
@@ -501,7 +501,7 @@ const App = (() => {
       if (configPaso > 0) { configPaso--; renderConfig(); }
     });
     configNext.addEventListener('click', () => {
-      if (configPaso < PASOS.length - 1) { configPaso++; renderConfig(); }
+      if (configPaso < PASOS.length - 1 && configValidoPaso(PASOS[configPaso])) { configPaso++; renderConfig(); }
     });
     configAdd.addEventListener('click', añadirTartaAlCarrito);
 
