@@ -3,6 +3,14 @@
 Registro de todo lo que se sube al repositorio en cada `git push`.
 Cada entrada indica qué funcionalidad se añadió y cómo usarla.
 
+## [0.3.5] - 2026-08-16 — En el último paso se muestra "Añadir al carrito" sin "Siguiente"
+
+### Corregido (commit `TBD`)
+- El atributo `hidden` no funcionaba en los botones: el CSS `.btn { display: inline-block }` anulaba el `display: none` nativo de `hidden`, por eso en el último paso (extras) se veían **"Siguiente" y "Añadir al carrito" a la vez**. Añadida la regla global `[hidden] { display: none !important; }`.
+- Ahora en el último paso solo aparece el botón **"Añadir al carrito"** (sin "Siguiente"); "Anterior" se sigue ocultando correctamente en el primer paso, y "Añadir al carrito" deja de verse en los pasos intermedios.
+
+**Cómo usarlo:** recargar con **Ctrl+F5**, abrir "Construye tu tarta" y llegar al paso de extras: solo verás "Añadir al carrito".
+
 ## [0.3.4] - 2026-08-16 — Botón "Siguiente" deshabilitado con color apagado
 
 ### Corregido (commit `8f358c9`)
