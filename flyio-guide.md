@@ -29,17 +29,17 @@ fly auth signup
 
 ### Cargar el esquema y datos
 
-En el dashboard de Supabase ve a **SQL Editor** y ejecuta estos archivos **en orden**:
+Supabase no permite crear roles (`CREATE ROLE`), así que usamos un script
+único que omite `roles.sql` y deja que la app conecte como `postgres`
+(dueño de la BD, RLS con bypass). Las queries ya filtran por `tienda_id`.
 
-1. `db/schema.sql`
-2. `db/roles.sql`
-3. `db/seed.sql`
-4. Todas las migraciones de `db/migrations/` (en orden: 001, 002, 003...)
-5. `db/seed_kokoro.sql`
+En el dashboard de Supabase ve a **SQL Editor**, abre el archivo
+`db/supabase-setup.sql`, copia TODO su contenido, pégalo en el editor
+y pulsa **Run** (se ejecuta una sola vez).
 
-Copiar y pegar el contenido de cada archivo en el SQL Editor y pulsar **Run**.
-
-> **Nota:** el rol `bakery_api` se crea en `roles.sql`. Asegúrate de que la contraseña del rol coincida con la que usarás en `DATABASE_URL`. Si quieres cambiarla, edita `roles.sql` antes de ejecutarlo y sustituye `api_secret_123` por la contraseña que elijas.
+> El script hace: esquema (tablas + RLS + funciones de tenant) → migraciones
+> del configurador/contenido/contactos → seed de tiendas → seed de Kokoro
+> Cakes con su catálogo real.
 
 ---
 

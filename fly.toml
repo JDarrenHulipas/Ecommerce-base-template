@@ -1,45 +1,36 @@
-# ============================================================
-# BakeryCloud - Fly.io (región Madrid)
-#
-# Requisitos previos:
-#   1. fly auth signup (crear cuenta)
-#   2. fly launch (crear la app y detectar el Dockerfile)
-#   3. fly secrets set (ver paso 5 de la guía)
-#   4. fly deploy
-#
-# PostgreSQL: Supabase free tier (EU) — ver flyio-guide.md
-# ============================================================
+# fly.toml app configuration file generated for bakerycloud-kokoro
+# Region: Madrid (mad) — mejor latencia desde España
 
-app = "bakerycloud-kokoro"
-primary_region = "mad"
+app = 'bakerycloud-kokoro'
+primary_region = 'mad'
 
 [build]
-  dockerfile = "docker/api.Dockerfile"
+  dockerfile = 'docker/api.Dockerfile'
 
 [env]
-  NODE_ENV = "production"
-  DEFAULT_TENANT_SLUG = "kokorocakes"
+  DEFAULT_TENANT_SLUG = 'kokorocakes'
+  NODE_ENV = 'production'
 
 [http_service]
   internal_port = 3000
   force_https = true
-  auto_stop_machines = true
+  auto_stop_machines = 'stop'
   auto_start_machines = true
   min_machines_running = 0
 
   [http_service.concurrency]
-    type = "connections"
+    type = 'connections'
     hard_limit = 25
     soft_limit = 20
 
-[[http_service.checks]]
-  [http_service.checks.health]
-    grace_period = "10s"
-    interval = "15s"
-    method = "GET"
-    path = "/api/health"
+  [[http_service.checks]]
+    grace_period = '10s'
+    interval = '15s'
+    method = 'GET'
+    path = '/api/health'
 
 [[vm]]
-  memory = "256mb"
-  cpu_kind = "shared"
+  memory = '256mb'
+  cpu_kind = 'shared'
   cpus = 1
+  memory_mb = 256
