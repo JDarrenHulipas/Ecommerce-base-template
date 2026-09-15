@@ -1,14 +1,18 @@
 const { Router } = require('express');
+const adminAuth = require('../middleware/adminAuth').adminAuth;
+const { mutationLimiter } = require('../middleware/rateLimit');
 
 const router = Router();
 
-// GET /api/contactos -> consultas recibidas de la tienda activa
-router.get('/', async (req, res, next) => {
+// GET /api/contactos -> consultas recibidas de la tienda activa (solo admin)
+router.get('/', adminAuth, async (req, res, next) => {
   try {
     const { rows } = await req.db.query(
       `SELECT id, nombre, email, mensaje, leido, created_at
          FROM contactos
-        ORDER BY created_at DESC`
+        WHERE tienda_id = $1
+        ORDER BY created_at DESC`,
+      [req.tenant.id]
     );
     res.json({ tienda: req.tenant.slug, count: rows.length, contactos: rows });
   } catch (err) {
@@ -18,7 +22,7 @@ router.get('/', async (req, res, next) => {
 
 // POST /api/contactos -> guarda una consulta del formulario de contacto
 // Body: { nombre, email, mensaje }
-router.post('/', async (req, res, next) => {
+router.post('/', mutationLimiter, async (req, res, next) => {
   try {
     const nombre = (req.body?.nombre || '').toString().trim();
     const email = (req.body?.email || '').toString().trim().toLowerCase();
@@ -33,9 +37,9 @@ router.post('/', async (req, res, next) => {
 
     const { rows } = await req.db.query(
       `INSERT INTO contactos (tienda_id, nombre, email, mensaje)
-       VALUES (app.current_tenant(), $1, $2, $3)
+       VALUES ($1, $2, $3, $4)
        RETURNING id, created_at`,
-      [nombre, email, mensaje]
+      [req.tenant.id, nombre, email, mensaje]
     );
 
     res.status(201).json({ id: rows[0].id, creado: rows[0].created_at });

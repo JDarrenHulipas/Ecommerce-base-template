@@ -4,6 +4,7 @@ const path = require('path');
 const multer = require('multer');
 const { adminPassword, adminSecret } = require('../config/env');
 const { firmarToken, adminAuth } = require('../middleware/adminAuth');
+const { loginLimiter } = require('../middleware/rateLimit');
 const { subirImagen, borrarImagen } = require('../storage');
 
 const router = Router();
@@ -28,7 +29,7 @@ const upload = multer({
 });
 
 // POST /api/admin/login  -> { password } => { token }
-router.post('/login', (req, res) => {
+router.post('/login', loginLimiter, (req, res) => {
   if (!adminPassword || !adminSecret) {
     return res.status(503).json({ error: 'Panel admin no configurado (falta ADMIN_PASSWORD / ADMIN_SECRET)' });
   }
@@ -68,7 +69,9 @@ router.get('/productos', async (req, res, next) => {
               c.nombre AS categoria
          FROM productos p
          LEFT JOIN categorias c ON c.tienda_id = p.tienda_id AND c.id = p.categoria_id
-        ORDER BY c.posicion, p.nombre`
+        WHERE p.tienda_id = $1
+        ORDER BY c.posicion, p.nombre`,
+      [req.tenant.id]
     );
     res.json({ tienda: req.tenant.slug, productos: rows });
   } catch (err) {
@@ -130,11 +133,11 @@ router.patch('/productos/:id', async (req, res, next) => {
       return res.status(400).json({ error: 'Sin campos para actualizar' });
     }
 
-    const sets = Object.keys(campos).map((k, i) => `${k} = $${i + 2}`).join(', ');
+    const sets = Object.keys(campos).map((k, i) => `${k} = $${i + 3}`).join(', ');
     const { rowCount, rows } = await req.db.query(
-      `UPDATE productos SET ${sets} WHERE id = $1
+      `UPDATE productos SET ${sets} WHERE id = $1 AND tienda_id = $2
          RETURNING id, slug, nombre, descripcion, ingredientes, precio, imagen_s3, stock, disponible`,
-      [id, ...Object.values(campos)]
+      [id, req.tenant.id, ...Object.values(campos)]
     );
     if (rowCount === 0) {
       return res.status(404).json({ error: 'Producto no encontrado' });
@@ -148,7 +151,10 @@ router.patch('/productos/:id', async (req, res, next) => {
 // GET /api/admin/contenido -> contenido editable de la portada de la tienda activa
 router.get('/contenido', async (req, res, next) => {
   try {
-    const { rows } = await req.db.query('SELECT clave, valor FROM contenido ORDER BY clave');
+    const { rows } = await req.db.query(
+      'SELECT clave, valor FROM contenido WHERE tienda_id = $1 ORDER BY clave',
+      [req.tenant.id]
+    );
     res.json({ tienda: req.tenant.slug, contenido: rows });
   } catch (err) {
     next(err);
@@ -287,7 +293,10 @@ router.delete('/productos/:id', async (req, res, next) => {
   try {
     const { id } = req.params;
     try {
-      const { rowCount } = await req.db.query('DELETE FROM productos WHERE id = $1', [id]);
+      const { rowCount } = await req.db.query(
+      'DELETE FROM productos WHERE id = $1 AND tienda_id = $2',
+      [id, req.tenant.id]
+    );
       if (rowCount === 0) {
         return res.status(404).json({ error: 'Producto no encontrado' });
       }
@@ -324,7 +333,9 @@ router.get('/pedidos', async (req, res, next) => {
               ), '[]'::json) AS items
          FROM pedidos p
          LEFT JOIN clientes c ON c.tienda_id = p.tienda_id AND c.id = p.cliente_id
-        ORDER BY p.created_at DESC`
+        WHERE p.tienda_id = $1
+        ORDER BY p.created_at DESC`,
+      [req.tenant.id]
     );
     res.json({ tienda: req.tenant.slug, pedidos: rows });
   } catch (err) {
@@ -336,7 +347,8 @@ router.get('/pedidos', async (req, res, next) => {
 router.get('/contactos', async (req, res, next) => {
   try {
     const { rows } = await req.db.query(
-      'SELECT id, nombre, email, mensaje, leido, created_at FROM contactos ORDER BY created_at DESC'
+      'SELECT id, nombre, email, mensaje, leido, created_at FROM contactos WHERE tienda_id = $1 ORDER BY created_at DESC',
+      [req.tenant.id]
     );
     res.json({ tienda: req.tenant.slug, contactos: rows });
   } catch (err) {
@@ -358,9 +370,9 @@ router.patch('/pedidos/:id/estado', async (req, res, next) => {
     }
     const { rowCount, rows } = await req.db.query(
       `UPDATE pedidos SET estado = $2
-         WHERE id = $1
+         WHERE id = $1 AND tienda_id = $3
         RETURNING id, estado`,
-      [req.params.id, estado]
+      [req.params.id, estado, req.tenant.id]
     );
     if (rowCount === 0) {
       return res.status(404).json({ error: 'Pedido no encontrado' });
@@ -371,6 +383,18 @@ router.patch('/pedidos/:id/estado', async (req, res, next) => {
   }
 });
 
+// Valida la firma del archivo (magic bytes) y devuelve la extensión real, o null si no es imagen.
+function detectarImagen(buf) {
+  if (buf.length >= 8 &&
+      buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4E && buf[3] === 0x47 &&
+      buf[4] === 0x0D && buf[5] === 0x0A && buf[6] === 0x1A && buf[7] === 0x0A) return '.png';
+  if (buf.length >= 3 && buf[0] === 0xFF && buf[1] === 0xD8 && buf[2] === 0xFF) return '.jpg';
+  if (buf.length >= 4 && buf.slice(0, 4).toString('ascii') === 'RIFF' &&
+      buf.length >= 12 && buf.slice(8, 12).toString('ascii') === 'WEBP') return '.webp';
+  if (buf.length >= 6 && buf.slice(0, 6).toString('ascii').startsWith('GIF8')) return '.gif';
+  return null;
+}
+
 // POST /api/admin/imagenes -> sube una imagen (multipart, campo "file") y devuelve su URL
 router.post('/imagenes', async (req, res, next) => {
   try {
@@ -380,7 +404,10 @@ router.post('/imagenes', async (req, res, next) => {
     if (!archivo) {
       return res.status(400).json({ error: 'Se requiere un archivo (campo "file")' });
     }
-    const ext = EXTENSIONES[archivo.mimetype] || '.img';
+    const ext = detectarImagen(archivo.buffer);
+    if (!ext) {
+      return res.status(400).json({ error: 'Solo se permiten imágenes reales (JPEG, PNG, WebP o GIF). Se rechazó un archivo no válido.' });
+    }
     const clave = `${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`;
     await subirImagen(clave, archivo.buffer, archivo.mimetype);
     res.status(201).json({ url: `/api/imagenes/${clave}` });

@@ -1,6 +1,11 @@
 require('dotenv').config();
 const path = require('path');
 
+const allowedOrigins = (process.env.CORS_ORIGINS || '')
+  .split(',')
+  .map((s) => s.trim())
+  .filter(Boolean);
+
 module.exports = {
   port: process.env.PORT || 3000,
   databaseUrl: process.env.DATABASE_URL,
@@ -12,4 +17,5 @@ module.exports = {
   s3Bucket: process.env.S3_BUCKET || '',
   s3Region: process.env.S3_REGION || 'eu-south-2',
   s3Endpoint: process.env.S3_ENDPOINT || '',
+  allowedOrigins,
 };

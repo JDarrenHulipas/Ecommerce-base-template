@@ -1,14 +1,18 @@
 const { Router } = require('express');
+const { mutationLimiter } = require('../middleware/rateLimit');
 
 const router = Router();
 
-// GET /api/pedidos  -> pedidos de la tienda activa con sus líneas
-router.get('/', async (req, res, next) => {
+// GET /api/pedidos  -> pedidos de la tienda activa con sus líneas (solo admin)
+const adminAuth = require('../middleware/adminAuth').adminAuth;
+router.get('/', adminAuth, async (req, res, next) => {
   try {
     const { rows } = await req.db.query(
       `SELECT id, estado, subtotal, envio, total, created_at
          FROM pedidos
-        ORDER BY created_at DESC`
+        WHERE tienda_id = $1
+        ORDER BY created_at DESC`,
+      [req.tenant.id]
     );
     res.json({ tienda: req.tenant.slug, count: rows.length, pedidos: rows });
   } catch (err) {
@@ -22,7 +26,7 @@ router.get('/', async (req, res, next) => {
 // desde la tabla `opciones` (nunca se confía en el cliente) y se guarda el
 // snapshot en pedido_items.configuracion.
 // configuracion: { tamano, altura, bizcocho, relleno, decoracion, extras: [opcion_id] }
-router.post('/', async (req, res, next) => {
+router.post('/', mutationLimiter, async (req, res, next) => {
   const client = req.db;
   try {
     const { cliente, items } = req.body || {};
@@ -50,8 +54,8 @@ router.post('/', async (req, res, next) => {
     // Precios actuales de los productos (desde la BD, no confiar en el cliente)
     const productoIds = items.map((i) => i.producto_id);
     const prods = await client.query(
-      `SELECT id, nombre, precio FROM productos WHERE id = ANY($1::bigint[])`,
-      [productoIds]
+      `SELECT id, nombre, precio FROM productos WHERE id = ANY($1::bigint[]) AND tienda_id = $2`,
+      [productoIds, req.tenant.id]
     );
     const precios = new Map(prods.rows.map((p) => [String(p.id), p]));
 
@@ -67,8 +71,8 @@ router.post('/', async (req, res, next) => {
     const opciones = new Map();
     if (opcionIds.length > 0) {
       const { rows } = await client.query(
-        `SELECT id, grupo, nombre, precio FROM opciones WHERE id = ANY($1::bigint[])`,
-        [opcionIds]
+        `SELECT id, grupo, nombre, precio FROM opciones WHERE id = ANY($1::bigint[]) AND tienda_id = $2`,
+        [opcionIds, req.tenant.id]
       );
       for (const r of rows) opciones.set(String(r.id), r);
     }

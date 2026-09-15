@@ -10,8 +10,9 @@ router.get('/', async (req, res, next) => {
               c.nombre AS categoria
          FROM productos p
          LEFT JOIN categorias c ON c.tienda_id = p.tienda_id AND c.id = p.categoria_id
-        WHERE p.disponible = TRUE
-        ORDER BY c.posicion, p.nombre`
+        WHERE p.tienda_id = $1 AND p.disponible = TRUE
+        ORDER BY c.posicion, p.nombre`,
+      [req.tenant.id]
     );
     res.json({ tienda: req.tenant.slug, count: rows.length, productos: rows });
   } catch (err) {
@@ -27,8 +28,8 @@ router.get('/:slug', async (req, res, next) => {
               c.nombre AS categoria
          FROM productos p
          LEFT JOIN categorias c ON c.tienda_id = p.tienda_id AND c.id = p.categoria_id
-        WHERE p.slug = $1 AND p.disponible = TRUE`,
-      [req.params.slug]
+        WHERE p.slug = $1 AND p.tienda_id = $2 AND p.disponible = TRUE`,
+      [req.params.slug, req.tenant.id]
     );
     if (rows.length === 0) {
       return res.status(404).json({ error: 'Producto no encontrado' });

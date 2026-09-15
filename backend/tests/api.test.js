@@ -11,7 +11,7 @@ const assert = require('node:assert/strict');
 const { Client } = require('pg');
 
 const app = require('../src/app');
-const { databaseUrl } = require('../src/config/env');
+const { databaseUrl, adminPassword } = require('../src/config/env');
 
 const T = {
   koko: 'kokorocakes',
@@ -20,9 +20,11 @@ const T = {
 
 let server;
 let baseURL;
+let token;
 
-async function api(path, { method = 'GET', tenant = T.koko, body } = {}) {
+async function api(path, { method = 'GET', tenant = T.koko, body, auth } = {}) {
   const headers = { 'X-Tenant-Slug': tenant };
+  if (auth) headers.Authorization = `Bearer ${auth}`;
   if (body !== undefined) headers['Content-Type'] = 'application/json';
   const res = await fetch(baseURL + path, {
     method,
@@ -37,6 +39,16 @@ before(async () => {
   server = app.listen(0);
   await new Promise((resolve) => server.once('listening', resolve));
   baseURL = `http://127.0.0.1:${server.address().port}`;
+
+  if (adminPassword) {
+    const res = await fetch(baseURL + '/api/admin/login', {
+      method: 'POST',
+      headers: { 'X-Tenant-Slug': T.koko, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: adminPassword }),
+    });
+    const data = await res.json().catch(() => ({}));
+    token = data.token || null;
+  }
 });
 
 after(async () => {
@@ -54,14 +66,15 @@ test('health: responde ok y expone la tienda por defecto', async () => {
   assert.equal(body.tienda, T.koko);
 });
 
-test('health: cambia la tienda activa con X-Tenant-Slug', async () => {
+test('health: es público y no depende del tenant activo', async () => {
   const { status, body } = await api('/api/health', { tenant: T.maribel });
   assert.equal(status, 200);
-  assert.equal(body.tienda, T.maribel);
+  assert.equal(body.status, 'ok');
+  assert.equal(body.tienda, T.koko);
 });
 
-test('health: tienda inexistente devuelve 404', async () => {
-  const { status, body } = await api('/api/health', { tenant: 'no-existe' });
+test('health: una ruta de tenant inexistente devuelve 404', async () => {
+  const { status, body } = await api('/api/productos', { tenant: 'no-existe' });
   assert.equal(status, 404);
   assert.match(body.error, /no encontrada|inactiva/i);
 });
@@ -136,7 +149,7 @@ test('productos/:slug: un producto de otra tienda no es visible (404)', async ()
 // ---------------------------------------------------------------------------
 
 test('pedidos: lista los pedidos de la tienda activa', async () => {
-  const { status, body } = await api('/api/pedidos');
+  const { status, body } = await api('/api/pedidos', { auth: token });
   assert.equal(status, 200);
   assert.equal(body.tienda, T.koko);
   assert.ok(Array.isArray(body.pedidos));
@@ -281,7 +294,7 @@ test('contactos: crea una consulta y aparece en el listado', async () => {
   assert.ok(body.id);
   assert.ok(body.creado);
 
-  const listado = await api('/api/contactos');
+  const listado = await api('/api/contactos', { auth: token });
   assert.equal(listado.status, 200);
   assert.equal(listado.body.tienda, T.koko);
   assert.ok(Array.isArray(listado.body.contactos));
@@ -319,8 +332,8 @@ test('contactos: aislamiento por tenant en el listado', async () => {
     body: { nombre: 'Aislamiento', email, mensaje: 'Solo koko debe ver esta consulta.' },
   });
 
-  const koko = await api('/api/contactos');
-  const maribel = await api('/api/contactos', { tenant: T.maribel });
+  const koko = await api('/api/contactos', { auth: token });
+  const maribel = await api('/api/contactos', { tenant: T.maribel, auth: token });
 
   assert.ok(koko.body.contactos.some((c) => c.email === email), 'koko debería ver su consulta');
   assert.ok(!maribel.body.contactos.some((c) => c.email === email), 'maribel no debería ver consultas de koko');

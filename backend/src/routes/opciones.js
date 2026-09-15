@@ -10,12 +10,15 @@ router.get('/', async (req, res, next) => {
       req.db.query(
         `SELECT id, grupo, nombre, descripcion, precio
            FROM opciones
-          ORDER BY posicion, nombre`
+          WHERE tienda_id = $1
+          ORDER BY posicion, nombre`,
+        [req.tenant.id]
       ),
       req.db.query(
         `SELECT id, slug, nombre, descripcion, precio
            FROM productos
-          WHERE slug = 'tarta-encargo' AND disponible = TRUE`
+          WHERE slug = 'tarta-encargo' AND tienda_id = $1 AND disponible = TRUE`,
+        [req.tenant.id]
       ),
     ]);
 

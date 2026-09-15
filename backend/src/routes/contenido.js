@@ -6,7 +6,10 @@ const router = Router();
 // Devuelve un objeto clave -> valor (p.ej. { hero_titulo: '...' }).
 router.get('/', async (req, res, next) => {
   try {
-    const { rows } = await req.db.query('SELECT clave, valor FROM contenido');
+    const { rows } = await req.db.query(
+      'SELECT clave, valor FROM contenido WHERE tienda_id = $1',
+      [req.tenant.id]
+    );
     const contenido = {};
     for (const r of rows) contenido[r.clave] = r.valor;
     res.json({ tienda: req.tenant.slug, contenido });
