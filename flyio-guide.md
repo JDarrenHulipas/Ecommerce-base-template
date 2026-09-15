@@ -71,10 +71,26 @@ fly secrets set DATABASE_URL="postgres://postgres.<ref>:<password>@aws-0-eu-cent
 fly secrets set ADMIN_PASSWORD="<contraseña-que-elijas>"
 fly secrets set ADMIN_SECRET="<frase-secreta-para-firmar-tokens>"
 
+# CORS: origenes permitidos de la API (mismo dominio de producción + localhost)
+fly secrets set CORS_ORIGINS="http://localhost:3000,http://127.0.0.1:3000,https://bakerycloud-kokoro.fly.dev,https://kokorocakes.darrenhulipas.com"
+
 # Imágenes (usa tu bucket de S3 si lo tienes; si no, las imágenes se guardan en disco efímero)
 # fly secrets set S3_BUCKET="<nombre-del-bucket>"
 # fly secrets set S3_REGION="eu-south-2"
 ```
+
+> **Seguridad:** el panel admin exige `ADMIN_PASSWORD`/`ADMIN_SECRET`. El login
+> y los POSTs tienen rate limiting (10 intentos/15min login, 30/min pedidos
+> y consultas). Las subidas de imagen validan el contenido real (magic bytes),
+> no solo el mimetype. Los GET públicos de pedidos y consultas requieren auth.
+> El aislamiento entre tiendas se hace con filtros SQL explícitos por
+> `tienda_id` porque el rol `postgres` de Supabase tiene `BYPASSRLS` (el RLS
+> no aplica aunque esté forzado).
+
+> **Nota del health check:** Fly llama a `/api/health` con el Host interno
+> (`bakerycloud-kokoro.fly.dev`). Esa ruta está montada ANTES del middleware
+> de tenant para que no se interprete ese Host como slug de tienda (si no,
+> devolvería 404 y Fly marcaría la máquina como caída).
 
 > **Sobre las imágenes:** sin `S3_BUCKET`, las imágenes subidas por el admin se guardan en el disco del contenedor. Si el contenedor se reinicia (auto_stop/auto_start), **se pierden**. Para producción, configura un bucket S3 (puedes crear uno gratis en AWS con el free tier).
 
@@ -96,6 +112,9 @@ fly status
 
 # Ver los logs
 fly logs
+
+# Health check (debe responder {"status":"ok",...})
+curl https://bakerycloud-kokoro.fly.dev/api/health
 
 # Abrir en el navegador
 fly open
