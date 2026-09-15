@@ -2,7 +2,7 @@ const { Router } = require('express');
 const crypto = require('crypto');
 const path = require('path');
 const multer = require('multer');
-const { adminPassword, adminSecret } = require('../config/env');
+const { adminUsername, adminPassword, adminSecret } = require('../config/env');
 const { firmarToken, adminAuth } = require('../middleware/adminAuth');
 const { loginLimiter } = require('../middleware/rateLimit');
 const { subirImagen, borrarImagen } = require('../storage');
@@ -28,19 +28,25 @@ const upload = multer({
   },
 });
 
-// POST /api/admin/login  -> { password } => { token }
+// POST /api/admin/login  -> { username, password } => { token }
 router.post('/login', loginLimiter, (req, res) => {
-  if (!adminPassword || !adminSecret) {
-    return res.status(503).json({ error: 'Panel admin no configurado (falta ADMIN_PASSWORD / ADMIN_SECRET)' });
+  if (!adminUsername || !adminPassword || !adminSecret) {
+    return res.status(503).json({ error: 'Panel admin no configurado (falta ADMIN_USERNAME / ADMIN_PASSWORD / ADMIN_SECRET)' });
   }
-  const { password } = req.body || {};
+  const { username, password } = req.body || {};
+  if (typeof username !== 'string' || username.length === 0) {
+    return res.status(400).json({ error: 'Falta el usuario' });
+  }
   if (typeof password !== 'string' || password.length === 0) {
     return res.status(400).json({ error: 'Falta la contraseña' });
   }
-  const a = Buffer.from(password);
-  const b = Buffer.from(adminPassword);
-  const ok = a.length === b.length && crypto.timingSafeEqual(a, b);
-  if (!ok) {
+  const a = Buffer.from(username);
+  const b = Buffer.from(adminUsername);
+  const okUsuario = a.length === b.length && crypto.timingSafeEqual(a, b);
+  const c = Buffer.from(password);
+  const d = Buffer.from(adminPassword);
+  const okPassword = c.length === d.length && crypto.timingSafeEqual(c, d);
+  if (!okUsuario || !okPassword) {
     return res.status(401).json({ error: 'Credenciales inválidas' });
   }
   res.json({ token: firmarToken() });

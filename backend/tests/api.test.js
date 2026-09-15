@@ -11,7 +11,7 @@ const assert = require('node:assert/strict');
 const { Client } = require('pg');
 
 const app = require('../src/app');
-const { databaseUrl, adminPassword } = require('../src/config/env');
+const { databaseUrl, adminUsername, adminPassword } = require('../src/config/env');
 
 const T = {
   koko: 'kokorocakes',
@@ -40,11 +40,11 @@ before(async () => {
   await new Promise((resolve) => server.once('listening', resolve));
   baseURL = `http://127.0.0.1:${server.address().port}`;
 
-  if (adminPassword) {
+  if (adminUsername && adminPassword) {
     const res = await fetch(baseURL + '/api/admin/login', {
       method: 'POST',
       headers: { 'X-Tenant-Slug': T.koko, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password: adminPassword }),
+      body: JSON.stringify({ username: adminUsername, password: adminPassword }),
     });
     const data = await res.json().catch(() => ({}));
     token = data.token || null;

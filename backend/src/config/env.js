@@ -10,6 +10,7 @@ module.exports = {
   port: process.env.PORT || 3000,
   databaseUrl: process.env.DATABASE_URL,
   defaultTenantSlug: process.env.DEFAULT_TENANT_SLUG || 'la-casa-del-cruasan',
+  adminUsername: process.env.ADMIN_USERNAME || '',
   adminPassword: process.env.ADMIN_PASSWORD || '',
   adminSecret: process.env.ADMIN_SECRET || '',
   adminTokenTtl: Number(process.env.ADMIN_TOKEN_TTL || 24 * 3600),

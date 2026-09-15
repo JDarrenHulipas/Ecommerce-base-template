@@ -13,7 +13,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 
-const { databaseUrl, adminPassword } = require('../src/config/env');
+const { databaseUrl, adminUsername, adminPassword } = require('../src/config/env');
 
 const BASE = 'http://localhost:3000';
 const TENANT = 'kokorocakes';
@@ -350,6 +350,7 @@ test('E2E: el panel admin permite editar el stock de un producto', { timeout: 12
   try {
     await page.goto(BASE + '/admin/', { waitUntil: 'domcontentloaded' });
     await page.waitForSelector('#admin-login-form');
+    await page.fill('#admin-username', adminUsername);
     await page.fill('#admin-password', adminPassword);
     await page.click('#admin-login-form button[type="submit"]');
 
@@ -399,6 +400,7 @@ test('E2E: el panel admin edita el contenido de la portada y se refleja en la ti
     const original = (await res.json()).contenido.announcement;
 
     await page.goto(BASE + '/admin/', { waitUntil: 'domcontentloaded' });
+    await page.fill('#admin-username', adminUsername);
     await page.fill('#admin-password', adminPassword);
     await page.click('#admin-login-form button[type="submit"]');
     await page.waitForSelector('#admin-panel:not([hidden])');
@@ -458,6 +460,7 @@ test('E2E: el panel admin cambia el estado de un pedido', { timeout: 120000 }, a
   const { context, page } = await nuevaPagina();
   try {
     await page.goto(BASE + '/admin/', { waitUntil: 'domcontentloaded' });
+    await page.fill('#admin-username', adminUsername);
     await page.fill('#admin-password', adminPassword);
     await page.click('#admin-login-form button[type="submit"]');
     await page.waitForSelector('#admin-panel:not([hidden])');
@@ -504,6 +507,7 @@ test('E2E: el panel admin crea un producto nuevo con imagen subida', { timeout: 
   );
   try {
     await page.goto(BASE + '/admin/', { waitUntil: 'domcontentloaded' });
+    await page.fill('#admin-username', adminUsername);
     await page.fill('#admin-password', adminPassword);
     await page.click('#admin-login-form button[type="submit"]');
     await page.waitForSelector('#admin-panel:not([hidden])');

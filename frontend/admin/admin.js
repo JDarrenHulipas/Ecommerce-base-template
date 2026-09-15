@@ -72,8 +72,8 @@ const AdminApp = (() => {
     el.classList.toggle('success', ok);
   }
 
-  async function iniciarSesion(password) {
-    const data = await request('/api/admin/login', { method: 'POST', body: { password } });
+  async function iniciarSesion(username, password) {
+    const data = await request('/api/admin/login', { method: 'POST', body: { username, password } });
     localStorage.setItem(TOKEN_KEY, data.token);
     mostrarPanel();
     await cargarTenants();
@@ -432,7 +432,7 @@ const AdminApp = (() => {
     panel.hidden = true;
     tools.hidden = true;
     setMsg(loginMsg, '');
-    $('#admin-password').focus();
+    $('#admin-username').focus();
   }
 
   function mostrarPanel() {
@@ -447,10 +447,11 @@ const AdminApp = (() => {
     $('#admin-login-form').addEventListener('submit', async (e) => {
       e.preventDefault();
       const btn = $('#admin-login-form button[type="submit"]');
+      const username = $('#admin-username').value.trim();
       const password = $('#admin-password').value;
       btn.disabled = true;
       try {
-        await iniciarSesion(password);
+        await iniciarSesion(username, password);
         $('#admin-login-form').reset();
       } catch (err) {
         setMsg(loginMsg, err.message);

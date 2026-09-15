@@ -44,20 +44,28 @@ after(async () => {
   server.close();
 });
 
-test('admin: el login rechaza una contraseña incorrecta', async () => {
-  const { status, body } = await api('/api/admin/login', { method: 'POST', body: { password: 'incorrecta' } });
+test('admin: el login rechaza un usuario incorrecto', async () => {
+  const { adminPassword } = require('../src/config/env');
+  const { status, body } = await api('/api/admin/login', { method: 'POST', body: { username: 'hacker', password: adminPassword } });
   assert.equal(status, 401);
   assert.match(body.error, /inválidas|no autorizado/i);
 });
 
-test('admin: el login rechaza peticiones sin contraseña', async () => {
+test('admin: el login rechaza una contraseña incorrecta', async () => {
+  const { adminUsername } = require('../src/config/env');
+  const { status, body } = await api('/api/admin/login', { method: 'POST', body: { username: adminUsername, password: 'incorrecta' } });
+  assert.equal(status, 401);
+  assert.match(body.error, /inválidas|no autorizado/i);
+});
+
+test('admin: el login rechaza peticiones sin usuario ni contraseña', async () => {
   const { status } = await api('/api/admin/login', { method: 'POST', body: {} });
   assert.equal(status, 400);
 });
 
-test('admin: el login devuelve un token con la contraseña correcta', async () => {
-  const { adminPassword } = require('../src/config/env');
-  const { status, body } = await api('/api/admin/login', { method: 'POST', body: { password: adminPassword } });
+test('admin: el login devuelve un token con el usuario y la contraseña correctos', async () => {
+  const { adminUsername, adminPassword } = require('../src/config/env');
+  const { status, body } = await api('/api/admin/login', { method: 'POST', body: { username: adminUsername, password: adminPassword } });
   assert.equal(status, 200);
   assert.ok(body.token, 'debería devolver un token');
   assert.match(body.token, /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/);
