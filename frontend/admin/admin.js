@@ -35,10 +35,12 @@ const AdminApp = (() => {
       '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
     }[c]));
 
+  const DEFAULT_IMG = '/img/cake-not-found.jpg';
+
   const previewImagen = (url) =>
     url
       ? `<img src="${escapeHtml(url)}" alt="Imagen del producto">`
-      : '<span class="img-none">Sin imagen</span>';
+      : `<img src="${DEFAULT_IMG}" alt="Sin imagen" style="opacity:.5">`;
 
   let productos = [];
   let valoresContenido = {};

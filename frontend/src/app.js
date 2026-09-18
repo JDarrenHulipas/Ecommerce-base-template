@@ -100,6 +100,7 @@ const App = (() => {
     return `background: linear-gradient(150deg, hsl(${h} 55% 78%), hsl(${h + 25} 50% 60%));`;
   };
 
+  const DEFAULT_IMG = '/img/cake-not-found.jpg';
   const localImgUrl = (p) => `/img/${p.slug}.jpg`;
 
   const getImagen = async (p) => {
@@ -108,8 +109,8 @@ const App = (() => {
     try {
       const res = await fetch(local, { method: 'HEAD' });
       if (res.ok) return { url: local, cls: 'card-image-img' };
-    } catch { /* sin foto local: degradado */ }
-    return { url: null, cls: 'card-image-grad', style: imageStyle(p) };
+    } catch { /* sin foto local */ }
+    return { url: DEFAULT_IMG, cls: 'card-image-img' };
   };
 
   const categoriasUnicas = () => {

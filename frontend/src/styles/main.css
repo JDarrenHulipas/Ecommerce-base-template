@@ -5,7 +5,7 @@
    ============================================================ */
 
 :root {
-  --crema:        #fff7f5;
+  --crema:        #f5eee8;
   --beige:        #d9b8ac;
   --beige-hover:  #c9a294;
   --frambuesa:    #8a4a5e;
@@ -47,7 +47,7 @@ body {
   position: sticky;
   top: 0;
   z-index: 50;
-  background: rgba(250, 247, 239, 0.92);
+  background: rgba(245, 238, 232, 0.92);
   backdrop-filter: blur(8px);
   border-bottom: 1px solid rgba(104, 20, 20, 0.12);
   transition: transform 0.3s ease;
@@ -83,7 +83,7 @@ body {
   font-family: var(--font-heading);
   font-size: 22px;
   font-weight: 600;
-  text-align: center;
+  text-align: left;
   line-height: 1.1;
   color: var(--rosa);
   text-decoration: none;
