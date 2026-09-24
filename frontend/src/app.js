@@ -34,6 +34,7 @@ const App = (() => {
 
   // Estado del configurador de tartas
   const PASOS = ['tamano', 'altura', 'bizcocho', 'relleno', 'decoracion', 'extra'];
+  const PASOS_CLASSICS = ['tamano', 'altura', 'extra'];
   const PASOS_TITULO = {
     tamano: 'Elige el tamaño',
     altura: 'Elige la altura',
@@ -53,6 +54,8 @@ const App = (() => {
   let catalogo = null;   // { tarta_base, grupos }
   let configSel = {};    // { tamano: id, altura: id, bizcocho: id, relleno: id, decoracion: id, extra: [ids] }
   let configPaso = 0;
+  let configProducto = null; // producto Classics que se está configurando, null = tarta personalizada base
+  const getPasosActivos = () => (configProducto && esClasico(configProducto) ? PASOS_CLASSICS : PASOS);
 
   const formatEUR = (n) =>
     n.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' });
@@ -182,8 +185,12 @@ const App = (() => {
 
       card.prepend(imgSlot);
 
+      // Classics: el botón abre configurador (tamano/altura/extras), no añade directo
+      const btnAdd = card.querySelector('.btn-add');
+      if (esClasico(p)) btnAdd.textContent = p.stock <= 0 ? 'Agotado' : 'Personalizar';
       card.querySelector('.btn-add').addEventListener('click', (e) => {
         e.stopPropagation();
+        if (esClasico(p)) { abrirConfig(p); return; }
         if (esTartaBase(p)) { abrirConfig(); return; }
         CartStore.add(p);
         actualizarContador();
@@ -191,6 +198,7 @@ const App = (() => {
       });
 
       card.addEventListener('click', () => {
+        if (esClasico(p)) { abrirConfig(p); return; }
         if (esTartaBase(p)) { abrirConfig(); return; }
         abrirModal(p);
       });
@@ -336,8 +344,23 @@ const App = (() => {
       (catalogo && catalogo.tarta_base && String(p.id) === String(catalogo.tarta_base.id)));
   }
 
+  function esClasico(p) {
+    return p && p.categoria && String(p.categoria).toLowerCase() === 'classics';
+  }
+
   function calcularPrecioConfig() {
     if (!configSel.tamano) return 0;
+    const esClassic = configProducto && esClasico(configProducto);
+    if (esClassic) {
+      // Classics: precio base del pastel + delta tamaño + altura + extras
+      const base = Number(configProducto.precio || 0);
+      const t = opcionPorId(configSel.tamano);
+      const deltaTamano = t ? Number(t.precio) - 40 : 0; // Medium (40€) como referencia
+      let total = base + deltaTamano;
+      if (configSel.altura) total += Number(opcionPorId(configSel.altura)?.precio || 0);
+      for (const id of configSel.extra || []) total += Number(opcionPorId(id)?.precio || 0);
+      return total;
+    }
     let total = Number(opcionPorId(configSel.tamano)?.precio || 0);
     for (const campo of ['altura', 'bizcocho', 'relleno', 'decoracion']) {
       if (configSel[campo]) total += Number(opcionPorId(configSel[campo])?.precio || 0);
@@ -349,8 +372,9 @@ const App = (() => {
   }
 
   function renderConfigSteps() {
-    configSteps.innerHTML = PASOS.map((paso, i) => {
-      const alcanzable = PASOS.slice(0, i).every(configValidoPaso);
+    const pasos = getPasosActivos();
+    configSteps.innerHTML = pasos.map((paso, i) => {
+      const alcanzable = pasos.slice(0, i).every(configValidoPaso);
       const sel = i < configPaso || (i === configPaso && configValidoPaso(paso)) ? 'done' : '';
       const active = i === configPaso ? 'active' : '';
       return `<button type="button" class="config-step ${active} ${sel}" data-paso="${i}" ${alcanzable ? '' : 'disabled'}>
@@ -414,12 +438,20 @@ const App = (() => {
   function renderConfigResumen() {
     const total = calcularPrecioConfig();
     const partes = [];
-    for (const paso of PASOS) {
+    const pasos = getPasosActivos();
+    for (const paso of pasos) {
       const ids = paso === 'extra' ? configSel.extra || [] : [configSel[paso]];
       for (const id of ids) {
         const op = opcionPorId(id);
         if (op) partes.push(op.nombre);
       }
+    }
+    if (configProducto && esClasico(configProducto)) {
+      const baseName = configProducto.nombre;
+      configResumen.innerHTML = partes.length
+        ? `${escapeHtml(baseName)} · ${escapeHtml(partes.join(' · '))} — <strong>${formatEUR(total)}</strong>`
+        : `${escapeHtml(baseName)} — <strong>${formatEUR(total)}</strong>`;
+      return total;
     }
     configResumen.innerHTML = partes.length
       ? `${escapeHtml(partes.join(' · '))} — <strong>${formatEUR(total)}</strong>`
@@ -428,20 +460,24 @@ const App = (() => {
   }
 
   function renderConfig() {
+    const pasos = getPasosActivos();
     renderConfigSteps();
-    renderConfigPaso(PASOS[configPaso]);
+    renderConfigPaso(pasos[configPaso]);
     renderConfigResumen();
 
-    const esUltimo = configPaso === PASOS.length - 1;
+    const esUltimo = configPaso === pasos.length - 1;
     configPrev.hidden = configPaso === 0;
     configNext.hidden = esUltimo;
     configAdd.hidden = !esUltimo;
     configPrev.disabled = false;
-    configNext.disabled = !configValidoPaso(PASOS[configPaso]);
-    configAdd.disabled = !['tamano', 'altura', 'bizcocho', 'relleno', 'decoracion'].every((p) => configValidoPaso(p));
+    configNext.disabled = !configValidoPaso(pasos[configPaso]);
+    const requeridos = configProducto && esClasico(configProducto)
+      ? ['tamano', 'altura']
+      : ['tamano', 'altura', 'bizcocho', 'relleno', 'decoracion'];
+    configAdd.disabled = !requeridos.every((p) => configValidoPaso(p));
   }
 
-  async function abrirConfig() {
+  async function abrirConfig(productoOrNull) {
     if (!catalogo) {
       try {
         catalogo = await Api.getOpciones();
@@ -449,6 +485,16 @@ const App = (() => {
         notify('No se pudo cargar el configurador de tartas. Inténtalo de nuevo más tarde.');
         return;
       }
+    }
+    configProducto = productoOrNull && esClasico(productoOrNull) ? productoOrNull : null;
+    // Si es tarta base personalizada sin producto Classics, configProducto queda null
+    if (productoOrNull && esClasico(productoOrNull)) {
+      configProducto = productoOrNull;
+    } else if (productoOrNull && esTartaBase(productoOrNull)) {
+      configProducto = null;
+    } else if (productoOrNull && !esClasico(productoOrNull) && !esTartaBase(productoOrNull)) {
+      // No configurable
+      configProducto = null;
     }
     configSel = {};
     configPaso = 0;
@@ -467,37 +513,57 @@ const App = (() => {
   }
 
   function añadirTartaAlCarrito() {
-    if (!['tamano', 'altura', 'bizcocho', 'relleno', 'decoracion'].every((p) => configSel[p])) {
+    const esClassic = configProducto && esClasico(configProducto);
+    const requeridos = esClassic ? ['tamano', 'altura'] : ['tamano', 'altura', 'bizcocho', 'relleno', 'decoracion'];
+    if (!requeridos.every((p) => configSel[p])) {
       notify('Faltan opciones por elegir. Completa todos los pasos antes de añadir la tarta.');
       return;
     }
     const total = calcularPrecioConfig();
+    const pasos = getPasosActivos();
     const partes = [];
-    for (const paso of PASOS) {
+    for (const paso of pasos) {
       const ids = paso === 'extra' ? configSel.extra || [] : [configSel[paso]];
       for (const id of ids) {
         const op = opcionPorId(id);
         if (op) partes.push(op.nombre);
       }
     }
-    const nombre = `Tarta personalizada (${partes.join(', ')})`;
-
-    CartStore.add(
-      {
-        producto_id: catalogo.tarta_base.id,
-        nombre,
-        precio: total,
-        configuracion: {
-          tamano: configSel.tamano,
-          altura: configSel.altura,
-          bizcocho: configSel.bizcocho,
-          relleno: configSel.relleno || null,
-          decoracion: configSel.decoracion || null,
-          extras: configSel.extra || [],
+    if (esClassic) {
+      const nombre = `${configProducto.nombre} (${partes.join(', ')})`;
+      CartStore.add(
+        {
+          producto_id: configProducto.id,
+          nombre,
+          precio: total,
+          configuracion: {
+            tamano: configSel.tamano,
+            altura: configSel.altura,
+            extras: configSel.extra || [],
+            _classic: true,
+          },
         },
-      },
-      1
-    );
+        1
+      );
+    } else {
+      const nombre = `Tarta personalizada (${partes.join(', ')})`;
+      CartStore.add(
+        {
+          producto_id: catalogo.tarta_base.id,
+          nombre,
+          precio: total,
+          configuracion: {
+            tamano: configSel.tamano,
+            altura: configSel.altura,
+            bizcocho: configSel.bizcocho,
+            relleno: configSel.relleno || null,
+            decoracion: configSel.decoracion || null,
+            extras: configSel.extra || [],
+          },
+        },
+        1
+      );
+    }
     actualizarContador();
     cerrarConfig();
     abrirDrawer();
@@ -624,7 +690,8 @@ const App = (() => {
       if (configPaso > 0) { configPaso--; renderConfig(); }
     });
     configNext.addEventListener('click', () => {
-      if (configPaso < PASOS.length - 1 && configValidoPaso(PASOS[configPaso])) { configPaso++; renderConfig(); }
+      const pasos = getPasosActivos();
+      if (configPaso < pasos.length - 1 && configValidoPaso(pasos[configPaso])) { configPaso++; renderConfig(); }
     });
     configAdd.addEventListener('click', añadirTartaAlCarrito);
 

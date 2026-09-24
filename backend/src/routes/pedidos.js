@@ -83,11 +83,25 @@ router.post('/', mutationLimiter, async (req, res, next) => {
 
       if (i.configuracion) {
         const conf = i.configuracion;
+        const isClassic = conf._classic === true || (!conf.bizcocho && !conf.relleno && !conf.decoracion && conf.tamano && conf.altura);
         // La opción debe existir Y pertenecer al grupo esperado
         const pick = (id, grupo) => {
           const op = opciones.get(String(id));
           return op && op.grupo === grupo ? op : null;
         };
+        if (isClassic) {
+          const prod = precios.get(String(i.producto_id));
+          if (!prod) throw Object.assign(new Error(`Producto ${i.producto_id} no existe`), { status: 400 });
+          const t = pick(conf.tamano, 'tamano');
+          const a = pick(conf.altura, 'altura');
+          const ex = (conf.extras || []).map((id) => pick(id, 'extra'));
+          if (!t || !a || ex.some((e) => !e)) {
+            throw Object.assign(new Error('Configuración Classics inválida: tamano/altura/extras incorrectos'), { status: 400 });
+          }
+          const deltaTamano = Number(t.precio) - 40; // Medium como referencia
+          unitario = Number(prod.precio) + deltaTamano + Number(a.precio) + ex.reduce((s, e) => s + Number(e.precio), 0);
+          nombreLinea = `${prod.nombre} · ${t.nombre} · ${a.nombre}` + (ex.length ? ` + ${ex.map((e) => e.nombre).join(' + ')}` : '');
+        } else {
         const t = pick(conf.tamano, 'tamano');
         const a = pick(conf.altura, 'altura');
         const b = pick(conf.bizcocho, 'bizcocho');
@@ -106,6 +120,7 @@ router.post('/', mutationLimiter, async (req, res, next) => {
                    ex.reduce((s, e) => s + Number(e.precio), 0);
         nombreLinea = `Tarta: ${t.nombre} · ${a.nombre} · ${b.nombre} · ${r.nombre} · ${d.nombre}` +
                       (ex.length ? ` + ${ex.map((e) => e.nombre).join(' + ')}` : '');
+        }
       } else {
         const prod = precios.get(String(i.producto_id));
         if (!prod) {
