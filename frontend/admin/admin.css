@@ -466,6 +466,25 @@
   color: #1d7a3c;
 }
 
+/* --- Hover button delete --- */
+.admin-table .delete-btn:hover {
+  background: #e53935;
+  color: #fff;
+}
+
+/* --- Clase out-of-stock en filas --- */
+.out-of-stock {
+  background: #fff8e1;
+}
+.out-of-stock .delete-btn {
+  opacity: 0.7;
+  pointer-events: none;
+}
+.out-of-stock .delete-btn:hover {
+  opacity: 1;
+  pointer-events: auto;
+}
+
 /* --- Responsive: móvil (max 599px) --- */
 @media (max-width: 599px) {
   .admin-main {

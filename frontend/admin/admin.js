@@ -102,7 +102,7 @@ const AdminApp = (() => {
       return;
     }
     tbody.innerHTML = productos.map((p, i) => `
-      <tr data-id="${p.id}">
+      <tr data-id="${p.id}" class="${p.disponible ? '' : 'out-of-stock'}">
         <td>
           <div class="p-nombre">${escapeHtml(p.nombre)}</div>
           <input type="text" class="edit-nombre" value="${escapeHtml(p.nombre)}" aria-label="Nombre del producto">
