@@ -465,3 +465,42 @@
   background-color: #ddeedd;
   color: #1d7a3c;
 }
+
+/* --- Responsive: móvil (max 599px) --- */
+@media (max-width: 599px) {
+  .admin-main {
+    max-width: 100%;
+    padding: 1rem;
+  }
+
+  .admin-table th,
+  .admin-table td {
+    padding: 0.4rem 0.4rem;
+    font-size: 0.75rem;
+    white-space: nowrap;
+  }
+
+  .admin-table input[type='number'] {
+    width: 60px;
+    padding: 0.25rem 0.3rem;
+  }
+
+  .img-cell {
+    min-width: 80px;
+  }
+
+  .contenido-form {
+    max-width: 100%;
+    padding: 1rem;
+  }
+
+  .contenido-campos {
+    gap: 0.5rem;
+  }
+
+  .contenido-campo input,
+  .contenido-campo textarea {
+    padding: 0.4rem 0.5rem;
+    font-size: 0.8rem;
+  }
+}
