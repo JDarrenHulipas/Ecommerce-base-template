@@ -130,15 +130,11 @@ const AdminApp = (() => {
         <td><input type="number" class="edit-stock" step="1" min="0" value="${p.stock}" aria-label="Stock"></td>
         <td><input type="checkbox" class="edit-disp" ${p.disponible ? 'checked' : ''} aria-label="Disponible"></td>
         <td>
-          <button type="button" class="save-btn" data-i="${i}">Guardar</button>
           <button type="button" class="delete-btn" data-i="${i}" aria-label="Eliminar producto">Eliminar</button>
         </td>
       </tr>
     `).join('');
 
-    tbody.querySelectorAll('.save-btn').forEach((btn) => {
-      btn.addEventListener('click', () => guardarFila(btn));
-    });
     tbody.querySelectorAll('.delete-btn').forEach((btn) => {
       btn.addEventListener('click', () => eliminarFila(btn));
     });
@@ -191,6 +187,51 @@ const AdminApp = (() => {
       setMsg(msg, `No se pudo guardar: ${err.message}`);
       btn.disabled = false;
     }
+  }
+
+  async function guardarTodo() {
+    const bulkBtn = $('#admin-guardar-todo');
+    const filas = [...tbody.querySelectorAll('tr[data-id]')];
+    if (filas.length === 0) return;
+    bulkBtn.disabled = true;
+    bulkBtn.textContent = 'Guardando...';
+    let ok = 0, fail = 0;
+    for (const tr of filas) {
+      const id = tr.dataset.id;
+      const idx = productos.findIndex((x) => String(x.id) === String(id));
+      if (idx === -1) continue;
+      const p = productos[idx];
+      const nombreInput = tr.querySelector('.edit-nombre');
+      if (!nombreInput || !nombreInput.value.trim()) { fail++; continue; }
+      const body = {
+        nombre: tr.querySelector('.edit-nombre').value.trim(),
+        descripcion: tr.querySelector('.edit-desc').value,
+        ingredientes: tr.querySelector('.edit-ing').value,
+        categoria: tr.querySelector('.edit-categoria').value.trim() || null,
+        precio: Number(tr.querySelector('.edit-precio').value),
+        stock: Number(tr.querySelector('.edit-stock').value),
+        disponible: tr.querySelector('.edit-disp').checked,
+      };
+      try {
+        const guardado = await request(`/api/admin/productos/${id}`, { method: 'PATCH', body });
+        Object.assign(p, {
+          nombre: guardado.nombre,
+          descripcion: guardado.descripcion,
+          ingredientes: guardado.ingredientes,
+          categoria: guardado.categoria,
+          imagen_s3: guardado.imagen_s3,
+          precio: guardado.precio,
+          stock: guardado.stock,
+          disponible: guardado.disponible,
+        });
+        ok++;
+      } catch (e) { fail++; }
+    }
+    if (fail === 0) setMsg(msg, `Guardados ${ok} productos.`, true);
+    else setMsg(msg, `Guardados ${ok}, con error ${fail}. Revisa los nombres.`);
+    bulkBtn.disabled = false;
+    bulkBtn.textContent = 'Guardar todos los cambios';
+    render();
   }
 
   async function eliminarFila(btn) {
@@ -489,6 +530,9 @@ const AdminApp = (() => {
       e.preventDefault();
       crearProducto();
     });
+
+    const bulkBtn = $('#admin-guardar-todo');
+    if (bulkBtn) bulkBtn.addEventListener('click', guardarTodo);
 
     $('#np-img-btn').addEventListener('click', () => $('#np-file').click());
     $('#np-file').addEventListener('change', async () => {

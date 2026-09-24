@@ -533,3 +533,16 @@
     font-size: 0.8rem;
   }
 }
+
+.admin-bulk-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 1rem;
+}
+
+.save-btn--bulk {
+  padding: 0.7rem 1.6rem;
+  font-size: 1rem;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(107,45,58,0.15);
+}
