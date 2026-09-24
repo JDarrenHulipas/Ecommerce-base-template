@@ -101,6 +101,14 @@ const AdminApp = (() => {
       tbody.innerHTML = '<tr><td colspan="8">No hay productos en esta tienda.</td></tr>';
       return;
     }
+    const categoriasUnicas = [...new Set(productos.map((x) => x.categoria).filter(Boolean))].sort();
+    let dl = document.getElementById('categorias-datalist');
+    if (!dl) {
+      dl = document.createElement('datalist');
+      dl.id = 'categorias-datalist';
+      document.body.appendChild(dl);
+    }
+    dl.innerHTML = categoriasUnicas.map((c) => `<option value="${escapeHtml(c)}">`).join('');
     tbody.innerHTML = productos.map((p, i) => `
       <tr data-id="${p.id}" class="${p.disponible ? '' : 'out-of-stock'}">
         <td>
@@ -109,7 +117,7 @@ const AdminApp = (() => {
           <input type="text" class="edit-desc" value="${escapeHtml(p.descripcion || '')}" aria-label="Descripción del producto">
         </td>
         <td><textarea class="edit-ing" rows="3" aria-label="Ingredientes del producto">${escapeHtml(p.ingredientes || '')}</textarea></td>
-        <td>${escapeHtml(p.categoria || '—')}</td>
+        <td><input type="text" class="edit-categoria" list="categorias-datalist" value="${escapeHtml(p.categoria || '')}" placeholder="Sin categoría" aria-label="Categoría del producto"></td>
         <td>
           <span class="img-cell" data-img="${escapeHtml(p.imagen_s3 || '')}">
             <span class="img-preview">${previewImagen(p.imagen_s3)}</span>
@@ -155,6 +163,7 @@ const AdminApp = (() => {
       nombre: tr.querySelector('.edit-nombre').value.trim(),
       descripcion: tr.querySelector('.edit-desc').value,
       ingredientes: tr.querySelector('.edit-ing').value,
+      categoria: tr.querySelector('.edit-categoria').value.trim() || null,
       precio: Number(tr.querySelector('.edit-precio').value),
       stock: Number(tr.querySelector('.edit-stock').value),
       disponible: tr.querySelector('.edit-disp').checked,
@@ -170,6 +179,7 @@ const AdminApp = (() => {
         nombre: guardado.nombre,
         descripcion: guardado.descripcion,
         ingredientes: guardado.ingredientes,
+        categoria: guardado.categoria,
         imagen_s3: guardado.imagen_s3,
         precio: guardado.precio,
         stock: guardado.stock,

@@ -134,20 +134,42 @@ router.patch('/productos/:id', async (req, res, next) => {
       }
       campos.imagen_s3 = img || null;
     }
+    if ('categoria' in req.body) {
+      const rawCat = req.body.categoria == null ? '' : String(req.body.categoria).trim();
+      const catName = rawCat || 'General';
+      await req.db.query(
+        `INSERT INTO categorias (tienda_id, nombre, posicion)
+         VALUES ($1, $2, (SELECT COALESCE(MAX(posicion),0)+1 FROM categorias WHERE tienda_id=$1))
+         ON CONFLICT (tienda_id, nombre) DO NOTHING`,
+        [req.tenant.id, catName]
+      );
+      const { rows: catRows } = await req.db.query(
+        'SELECT id FROM categorias WHERE tienda_id = $1 AND nombre = $2',
+        [req.tenant.id, catName]
+      );
+      campos.categoria_id = catRows[0].id;
+    }
 
     if (Object.keys(campos).length === 0) {
       return res.status(400).json({ error: 'Sin campos para actualizar' });
     }
 
     const sets = Object.keys(campos).map((k, i) => `${k} = $${i + 3}`).join(', ');
-    const { rowCount, rows } = await req.db.query(
-      `UPDATE productos SET ${sets} WHERE id = $1 AND tienda_id = $2
-         RETURNING id, slug, nombre, descripcion, ingredientes, precio, imagen_s3, stock, disponible`,
+    const { rowCount } = await req.db.query(
+      `UPDATE productos SET ${sets} WHERE id = $1 AND tienda_id = $2`,
       [id, req.tenant.id, ...Object.values(campos)]
     );
     if (rowCount === 0) {
       return res.status(404).json({ error: 'Producto no encontrado' });
     }
+    const { rows } = await req.db.query(
+      `SELECT p.id, p.slug, p.nombre, p.descripcion, p.ingredientes, p.precio, p.imagen_s3, p.stock, p.disponible,
+              c.nombre AS categoria
+       FROM productos p
+       LEFT JOIN categorias c ON c.id = p.categoria_id
+       WHERE p.id = $1 AND p.tienda_id = $2`,
+      [id, req.tenant.id]
+    );
     res.json(rows[0]);
   } catch (err) {
     next(err);

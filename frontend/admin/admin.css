@@ -155,6 +155,16 @@
   font: inherit;
 }
 
+.admin-table .edit-categoria {
+  width: 100%;
+  min-width: 120px;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid #d9c4b8;
+  border-radius: 6px;
+  font: inherit;
+  background: #fff;
+}
+
 .admin-table .save-btn {
   padding: 0.4rem 0.9rem;
   border: none;
