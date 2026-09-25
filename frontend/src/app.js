@@ -162,7 +162,7 @@ const App = (() => {
     for (let i = 0; i < pagina.length; i++) {
       const p = pagina[i];
       const card = document.createElement('article');
-      card.className = 'card card-in' + (p.disponible === false ? ' card-soldout' : '');
+      card.className = 'card card-in' + (p.stock <= 0 || p.disponible === false ? ' card-soldout' : '');
       card.style.animationDelay = `${i * 0.06}s`;
       card.innerHTML = `
         <div class="card-body">
