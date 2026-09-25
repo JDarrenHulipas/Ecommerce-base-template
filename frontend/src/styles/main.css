@@ -395,8 +395,10 @@ body {
   transition: all 0.2s;
 }
 .btn-add:hover { background: var(--rosa); }
+.btn-add:disabled,
+.btn-add:disabled:hover { background: var(--frambuesa); opacity: 0.8; }
 
-.card-soldout { opacity: 0.55; pointer-events: none; transition: none; }
+.card-soldout { opacity: 0.55; transition: none; }
 .card-soldout:hover { transform: none; box-shadow: var(--shadow); }
 .card-soldout.card-in { animation: none; }
 

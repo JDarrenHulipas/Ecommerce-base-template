@@ -209,6 +209,8 @@ const App = (() => {
       });
 
       card.addEventListener('click', () => {
+        const agotado = p.stock <= 0 || p.disponible === false;
+        if (agotado) { abrirModal(p); return; }
         if (esClasico(p)) { abrirConfig(p); return; }
         if (esTartaBase(p)) { abrirConfig(); return; }
         abrirModal(p);
