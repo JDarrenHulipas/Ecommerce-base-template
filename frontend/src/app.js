@@ -1,6 +1,7 @@
 const App = (() => {
   const $ = (sel) => document.querySelector(sel);
   const grid = $('#grid-productos');
+  const pagination = $('#pagination');
   const categoriasEl = $('#categorias');
   const cartCount = $('#cart-count');
   const drawer = $('#drawer');
@@ -30,6 +31,8 @@ const App = (() => {
 
   let productos = [];
   let categoriaActiva = 'todas';
+  let paginaActiva = 1;
+  const POR_PAGINA = 12;
   let productoActivo = null;
 
   // Estado del configurador de tartas
@@ -129,6 +132,7 @@ const App = (() => {
       btn.textContent = cat === 'todas' ? 'Todas' : cat;
       btn.addEventListener('click', () => {
         categoriaActiva = cat;
+        paginaActiva = 1;
         renderCategorias();
         renderGrid();
       });
@@ -142,14 +146,21 @@ const App = (() => {
         ? productos
         : productos.filter((p) => p.categoria === categoriaActiva);
 
+    const totalPaginas = Math.max(1, Math.ceil(filtrados.length / POR_PAGINA));
+    if (paginaActiva > totalPaginas) paginaActiva = totalPaginas;
+    const inicio = (paginaActiva - 1) * POR_PAGINA;
+    const pagina = filtrados.slice(inicio, inicio + POR_PAGINA);
+
+    renderPagination(totalPaginas);
+
     grid.innerHTML = '';
     if (filtrados.length === 0) {
       grid.innerHTML = '<p style="grid-column:1/-1;text-align:center;color:var(--beige)">No hay productos en esta categoría.</p>';
       return;
     }
 
-    for (let i = 0; i < filtrados.length; i++) {
-      const p = filtrados[i];
+    for (let i = 0; i < pagina.length; i++) {
+      const p = pagina[i];
       const card = document.createElement('article');
       card.className = 'card card-in' + (p.disponible === false ? ' card-soldout' : '');
       card.style.animationDelay = `${i * 0.06}s`;
@@ -205,6 +216,43 @@ const App = (() => {
 
       grid.appendChild(card);
     }
+  }
+
+  function renderPagination(totalPaginas) {
+    if (totalPaginas <= 1) {
+      pagination.hidden = true;
+      pagination.innerHTML = '';
+      return;
+    }
+    pagination.hidden = false;
+    pagination.innerHTML = '';
+
+    const btn = (label, pagina, disabled, aria) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'page-btn';
+      b.textContent = label;
+      b.disabled = disabled;
+      b.setAttribute('aria-label', aria);
+      if (!disabled) {
+        b.addEventListener('click', () => {
+          paginaActiva = pagina;
+          renderGrid();
+          document.getElementById('productos').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+      }
+      pagination.appendChild(b);
+      return b;
+    };
+
+    btn('‹', paginaActiva - 1, paginaActiva === 1, 'Página anterior');
+
+    for (let n = 1; n <= totalPaginas; n++) {
+      const b = btn(String(n), n, false, `Página ${n}`);
+      if (n === paginaActiva) b.classList.add('active');
+    }
+
+    btn('›', paginaActiva + 1, paginaActiva === totalPaginas, 'Página siguiente');
   }
 
   function actualizarContador() {

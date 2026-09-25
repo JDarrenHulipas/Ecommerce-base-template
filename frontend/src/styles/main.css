@@ -294,6 +294,33 @@ body {
   gap: 28px;
 }
 
+/* ---------- Paginación ---------- */
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  margin-top: 32px;
+  flex-wrap: wrap;
+}
+.page-btn {
+  min-width: 40px;
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--beige);
+  border-radius: 999px;
+  background: var(--blanco);
+  color: var(--frambuesa);
+  font-family: var(--font-body);
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.page-btn:hover:not(:disabled) { border-color: var(--rosa); color: var(--rosa); }
+.page-btn.active { background: var(--rosa); border-color: var(--rosa); color: var(--blanco); }
+.page-btn:disabled { opacity: 0.4; cursor: default; }
+.page-btn:active:not(:disabled) { transform: scale(0.93); }
+
 .card {
   background: var(--blanco);
   border-radius: var(--radius);
