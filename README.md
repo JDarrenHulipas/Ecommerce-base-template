@@ -111,6 +111,10 @@ bakerycloud/
   `/api/imagenes` inexistentes
 - [x] **Productos con pedidos borrables**: el DELETE desvincula las líneas (`pedido_items.producto_id
   = NULL`) conservando nombre, precio y configuración del historial
+- [x] **Mínimo privilegio en la BD**: la API produce conecta como `bakery_api` (sin BYPASSRLS,
+  solo CRUD de sus tablas) en vez de `postgres`; RLS filtra cada consulta (`db/supabase-bakery-api-role.sql`)
+- [x] **Escaneo de secretos**: workflow de gitleaks en cada push/PR + semanal con alertas en
+  GitHub Code Scanning (validado: 0 leaks en el historial)
 - [ ] Cloudflare + lanzamiento (semanas 9-10)
 - [x] Prerrequisitos locales: **Node.js 20+** instalado ✓, **Docker Desktop** instalado ✓
 
@@ -228,7 +232,7 @@ tienda por defecto):
 | `/api/productos` | Productos de la tienda activa |
 | `/api/productos/:slug` | Detalle de un producto |
 | `/api/opciones` | Catálogo del configurador (tarta base + opciones agrupadas) |
-| `/api/pedidos` | Pedidos de la tienda activa |
+| `/api/pedidos` | Pedidos de la tienda activa (requiere token) |
 | `/api/contactos` | Consultas del formulario de contacto de la tienda activa |
 | `/api/contenido` | Textos de la portada (anuncios, hero, nosotros, contacto, footer) |
 | `/api/imagenes/<archivo>` | Público: sirve las imágenes subidas por el admin (S3 o disco local) |

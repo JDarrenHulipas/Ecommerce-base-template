@@ -1,22 +1,29 @@
 -- ============================================================
 -- BakeryCloud - Rol de mínimo privilegio para la API EN SUPABASE
 -- ------------------------------------------------------------
--- POR QUÉ: en producción la API conectaba como `postgres`
--- (superusuario + BYPASSRLS). Si algún día hubiera una SQLi, el
--- atacante tendría permisos de superusuario sobre toda la BD.
--- Con `bakery_api`, RLS SIEMPRE filtra (sin BYPASSRLS) y solo
--- puede hacer SELECT/INSERT/UPDATE/DELETE de las tablas de negocio.
+-- POR QUÉ: antes la API conectaba como `postgres` (superusuario +
+-- BYPASSRLS). Si algún día hubiera una SQLi, el atacante tendría
+-- permisos de superusuario. Con este rol, RLS SIEMPRE filtra (sin
+-- BYPASSRLS) y solo puede hacer SELECT/INSERT/UPDATE/DELETE de las
+-- tablas de negocio. Ya está aplicado en producción (Fly secrets).
 --
--- APLICACIÓN:
---   1. Sustituye 'cambia_esta_password' por una password aleatoria
---      generada AL APLICARLA (nunca se guarda en el repo).
---   2. Supabase Dashboard → SQL Editor → Run (o DATABASE_URL postgres).
---   3. fly secrets set DATABASE_URL=... con la conexión de este rol.
+-- CÓMO CONECTAR (ojo, dos particularidades de Supabase):
+--   · Usuario en el pooler:  bakery_api.[PROJECT-REF]
+--     (un rol custom necesita el ref; el rol en la BD se llama
+--     simplemente `bakery_api`, el pooler reescribe el usuario)
+--   · Puerto 5432 (modo sesión). El 6543 (modo transacción)
+--     pierde el estado entre transacciones y rompería
+--     `SELECT app.set_tenant(...)` = RLS devolvería 0 filas.
+--   · Ejemplo: postgres://bakery_api.[REF]:[PASSWORD]@[POOLER-HOST]:5432/postgres
+--
+-- PASSWORD: genera una aleatoria AL APLICARLA y guárdala en el
+-- secreto de Fly (DATABASE_URL). NUNCA en el repo.
 --
 -- Idempotente: se puede ejecutar varias veces.
 -- ============================================================
 
--- 1) Rol (solo si no existe)
+-- 1) Rol (solo si no existe). Nota: la password del placeholder se
+--    sustituye en TODAS sus apariciones si copias el script.
 DO $$
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'bakery_api') THEN
@@ -47,10 +54,8 @@ ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public
 GRANT CREATE ON SCHEMA public TO bakery_api;
 
 -- ------------------------------------------------------------
--- Verificación (tras cambiar el secret en Fly):
---   \du bakery_api                      -> privilegios
---   como bakery_api:
---     SELECT set_tenant(1); SELECT count(*) FROM productos;  -> filas de la tienda 1
---     SELECT set_tenant(2); SELECT count(*) FROM productos;  -> filas de la tienda 2
---     SELECT count(*) FROM productos;                        -> 0 (sin tenant)
+-- Verificación (rol mínimo = defensa en profundidad):
+--   como bakery_api sin set_tenant -> SELECT count(*) FROM productos = 0
+--   con set_tenant(1)              -> solo filas de la tienda 1
+--   con set_tenant(2)              -> solo filas de la tienda 2
 -- ------------------------------------------------------------
