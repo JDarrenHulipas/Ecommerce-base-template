@@ -1,5 +1,4 @@
 const AdminApp = (() => {
-  const TOKEN_KEY = 'bakery_admin_token';
   const TENANT_KEY = 'bakery_admin_tenant';
 
   // Campos editables de la portada (etiqueta y si permite varias líneas)
@@ -50,16 +49,18 @@ const AdminApp = (() => {
 
   const ESTADOS_PEDIDO = ['pendiente', 'confirmado', 'enviado', 'entregado', 'cancelado'];
 
-  const token = () => localStorage.getItem(TOKEN_KEY);
   const tenantSlug = () => localStorage.getItem(TENANT_KEY) || 'kokorocakes';
 
+  // La sesión vive en una cookie httpOnly (la manda el navegador sola).
+  // X-Requested-With es obligatorio: el backend lo exige en mutaciones para
+  // bloquear CSRF (una web ajena no puede enviar esa cabecera).
   async function request(path, { method = 'GET', body } = {}) {
     const res = await fetch(path, {
       method,
       headers: {
         'Content-Type': 'application/json',
         'X-Tenant-Slug': tenantSlug(),
-        ...(token() ? { Authorization: `Bearer ${token()}` } : {}),
+        'X-Requested-With': 'XMLHttpRequest',
       },
       body: body !== undefined ? JSON.stringify(body) : undefined,
     });
@@ -75,8 +76,7 @@ const AdminApp = (() => {
   }
 
   async function iniciarSesion(username, password) {
-    const data = await request('/api/admin/login', { method: 'POST', body: { username, password } });
-    localStorage.setItem(TOKEN_KEY, data.token);
+    await request('/api/admin/login', { method: 'POST', body: { username, password } });
     mostrarPanel();
     await cargarTenants();
     await recargarTodo();
@@ -264,7 +264,7 @@ const AdminApp = (() => {
       fd.append('file', file);
       const res = await fetch('/api/admin/imagenes', {
         method: 'POST',
-        headers: { 'X-Tenant-Slug': tenantSlug(), Authorization: `Bearer ${token()}` },
+        headers: { 'X-Tenant-Slug': tenantSlug(), 'X-Requested-With': 'XMLHttpRequest' },
         body: fd,
       });
       const data = await res.json().catch(() => ({}));
@@ -298,7 +298,7 @@ const AdminApp = (() => {
       if (url.startsWith('/api/imagenes/')) {
         fetch(`/api/admin/imagenes/${url.replace('/api/imagenes/', '')}`, {
           method: 'DELETE',
-          headers: { 'X-Tenant-Slug': tenantSlug(), Authorization: `Bearer ${token()}` },
+          headers: { 'X-Tenant-Slug': tenantSlug(), 'X-Requested-With': 'XMLHttpRequest' },
         }).catch(() => {});
       }
       p.imagen_s3 = guardado.imagen_s3;
@@ -546,7 +546,7 @@ const AdminApp = (() => {
         fd.append('file', file);
         const res = await fetch('/api/admin/imagenes', {
           method: 'POST',
-          headers: { 'X-Tenant-Slug': tenantSlug(), Authorization: `Bearer ${token()}` },
+          headers: { 'X-Tenant-Slug': tenantSlug(), 'X-Requested-With': 'XMLHttpRequest' },
           body: fd,
         });
         const data = await res.json().catch(() => ({}));
@@ -566,7 +566,7 @@ const AdminApp = (() => {
       if (nuevaImagen.startsWith('/api/imagenes/')) {
         fetch(`/api/admin/imagenes/${nuevaImagen.replace('/api/imagenes/', '')}`, {
           method: 'DELETE',
-          headers: { 'X-Tenant-Slug': tenantSlug(), Authorization: `Bearer ${token()}` },
+          headers: { 'X-Tenant-Slug': tenantSlug(), 'X-Requested-With': 'XMLHttpRequest' },
         }).catch(() => {});
       }
       nuevaImagen = '';
@@ -575,25 +575,25 @@ const AdminApp = (() => {
     });
 
     $('#admin-logout').addEventListener('click', () => {
-      localStorage.removeItem(TOKEN_KEY);
+      // Borra la cookie httpOnly en el servidor
+      fetch('/api/admin/logout', {
+        method: 'POST',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+      }).catch(() => {});
       mostrarLogin();
     });
 
-    if (token()) {
-      mostrarPanel();
-      cargarTenants()
-        .then(() => recargarTodo())
-        .catch((err) => {
-          if (/401|No autorizado/.test(err.message)) {
-            localStorage.removeItem(TOKEN_KEY);
-            mostrarLogin();
-          } else {
-            setMsg(msg, err.message);
-          }
-        });
-    } else {
-      mostrarLogin();
-    }
+    // Limpia tokens de versiones anteriores (ya no se usan localStorage)
+    localStorage.removeItem('bakery_admin_token');
+
+    request('/api/admin/session')
+      .then(() => {
+        mostrarPanel();
+        cargarTenants()
+          .then(() => recargarTodo())
+          .catch((err) => setMsg(msg, err.message));
+      })
+      .catch(() => mostrarLogin());
   }
 
   function recargarTodo() {

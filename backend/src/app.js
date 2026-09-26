@@ -53,6 +53,13 @@ app.use(
 // En local las sirve express.static; con S3 configurado, el proxy las trae del bucket.
 app.use('/api/imagenes', express.static(uploadDir, { maxAge: '7d', immutable: true }));
 app.use('/api/imagenes', servirImagen);
+// Las imágenes NO pasan por el middleware de tenant (cada request de imagen
+// ocuparía una conexión del pool durante la resolución de tienda y, con el
+// navegador pidiendo ~14 imágenes en paralelo, agotaba las 10 conexiones y
+// dejaba toda la API sin BD). Si llega aquí, el archivo no existe.
+app.use('/api/imagenes', (req, res) => {
+  res.status(404).json({ error: 'Imagen no encontrada' });
+});
 
 // Health check publico: se resuelve ANTES del middleware de tenant porque
 // Fly.io lo llama con Host interno (p.ej. bakerycloud-kokoro.fly.dev) que no

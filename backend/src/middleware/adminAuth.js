@@ -1,6 +1,8 @@
 const crypto = require('crypto');
 const { adminPassword, adminSecret, adminTokenTtl } = require('../config/env');
 
+const COOKIE_NAME = 'bakery_admin_token';
+
 // Firma un token de sesión admin: <payload base64url>.<hmac-sha256>
 function firmarToken() {
   const payload = { exp: Math.floor(Date.now() / 1000) + adminTokenTtl };
@@ -25,17 +27,43 @@ function verificarToken(token) {
   }
 }
 
-// Protege las rutas /api/admin/* (menos /login)
+// Parsea la cabecera Cookie sin dependencias externas
+function parseCookies(header) {
+  const out = {};
+  if (!header) return out;
+  for (const parte of String(header).split(';')) {
+    const i = parte.indexOf('=');
+    if (i < 0) continue;
+    const k = parte.slice(0, i).trim();
+    if (k) out[k] = decodeURIComponent(parte.slice(i + 1).trim());
+  }
+  return out;
+}
+
+// Protege las rutas /api/admin/* (menos /login y /logout)
 function adminAuth(req, res, next) {
   if (!adminPassword || !adminSecret) {
     return res.status(503).json({ error: 'Panel admin no configurado (falta ADMIN_PASSWORD / ADMIN_SECRET)' });
   }
   const auth = req.headers.authorization || '';
-  const token = auth.startsWith('Bearer ') ? auth.slice(7) : null;
+  const bearer = auth.startsWith('Bearer ') ? auth.slice(7) : null;
+  const cookieToken = parseCookies(req.headers.cookie)[COOKIE_NAME];
+  const viaCookie = !bearer && !!cookieToken;
+  const token = bearer || cookieToken;
   if (!token || !verificarToken(token)) {
     return res.status(401).json({ error: 'No autorizado' });
+  }
+
+  // Protección CSRF: si la autenticación viene de la cookie y es una petición
+  // que modifica datos, exige una cabecera personalizada. Un atacante
+  // cross-origin no puede enviarla (el navegador fuerza un preflight que el
+  // CORS restringido no aprueba) y SameSite=Strict ya bloquea la cookie.
+  if (viaCookie && !['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
+    if ((req.headers['x-requested-with'] || '') !== 'XMLHttpRequest') {
+      return res.status(403).json({ error: 'CSRF: falta la cabecera X-Requested-With' });
+    }
   }
   next();
 }
 
-module.exports = { firmarToken, verificarToken, adminAuth };
+module.exports = { firmarToken, verificarToken, adminAuth, COOKIE_NAME };

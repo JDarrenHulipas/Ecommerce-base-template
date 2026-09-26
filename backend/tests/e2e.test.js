@@ -70,6 +70,22 @@ async function nuevaPagina() {
   return { context, page };
 }
 
+// Con la paginación del catálogo (12 por página) un producto puede caer en
+// otra página: recorre las páginas hasta encontrar el selector y hace clic.
+async function clickEnCatalogo(page, selector) {
+  for (let intento = 0; intento < 10; intento++) {
+    if ((await page.locator(selector).count()) > 0) {
+      await page.click(selector);
+      return;
+    }
+    const siguiente = page.locator('#pagination button[aria-label="Página siguiente"]');
+    if ((await siguiente.count()) === 0 || (await siguiente.isDisabled())) break;
+    await siguiente.click();
+    await page.waitForTimeout(200);
+  }
+  await page.click(selector);
+}
+
 async function comprobarDisponibilidad() {
   try {
     const res = await fetch(BASE + '/api/health', { headers: { 'X-Tenant-Slug': TENANT } });
@@ -189,7 +205,7 @@ test('E2E: añadir producto al carrito abre el drawer y actualiza el contador', 
     await page.goto(BASE + '/', { waitUntil: 'domcontentloaded' });
     await page.waitForSelector('#grid-productos .card');
     const id = elegido.normal.id;
-    await page.click(`.btn-add[data-id="${id}"]`);
+    await clickEnCatalogo(page, `.btn-add[data-id="${id}"]`);
     await page.waitForSelector('#drawer.open');
     await page.waitForFunction(
       () => document.querySelector('#cart-count')?.textContent === '1'
@@ -208,7 +224,7 @@ test('E2E: ajustar cantidades y eliminar ítem del carrito', { timeout: 120000 }
     await page.goto(BASE + '/', { waitUntil: 'domcontentloaded' });
     await page.waitForSelector('#grid-productos .card');
     const id = elegido.normal.id;
-    await page.click(`.btn-add[data-id="${id}"]`);
+    await clickEnCatalogo(page, `.btn-add[data-id="${id}"]`);
     await page.waitForSelector('#drawer.open');
 
     await page.click('.drawer-item [data-action="incr"]');
@@ -234,7 +250,7 @@ test('E2E: el carrito persiste tras recargar la página', { timeout: 120000 }, a
     await page.goto(BASE + '/', { waitUntil: 'domcontentloaded' });
     await page.waitForSelector('#grid-productos .card');
     const id = elegido.normal.id;
-    await page.click(`.btn-add[data-id="${id}"]`);
+    await clickEnCatalogo(page, `.btn-add[data-id="${id}"]`);
     await page.waitForFunction(() => document.querySelector('#cart-count')?.textContent === '1');
 
     await page.reload({ waitUntil: 'domcontentloaded' });
@@ -256,7 +272,7 @@ test('E2E: el modal de detalle muestra la información del producto', { timeout:
     await page.goto(BASE + '/', { waitUntil: 'domcontentloaded' });
     await page.waitForSelector('#grid-productos .card');
     const id = elegido.normal.id;
-    await page.click(`.card:has(.btn-add[data-id="${id}"]) .card-name`);
+    await clickEnCatalogo(page, `.card:has(.btn-add[data-id="${id}"]) .card-name`);
     await page.waitForSelector('#producto-modal.open');
     assert.equal(await page.locator('#modal-name').textContent(), elegido.normal.nombre);
     await page.click('#modal-close');
@@ -273,7 +289,7 @@ test('E2E: el configurador completa una tarta personalizada y la añade al carri
     await page.goto(BASE + '/', { waitUntil: 'domcontentloaded' });
     await page.waitForSelector('#grid-productos .card');
     const id = elegido.tarta_base.id;
-    await page.click(`.btn-add[data-id="${id}"]`);
+    await clickEnCatalogo(page, `.btn-add[data-id="${id}"]`);
     await page.waitForSelector('#config-modal.open');
 
     const pasos = 5; // tamano, altura, bizcocho, relleno, decoracion
@@ -302,7 +318,7 @@ test('E2E: checkout confirma el pedido y limpia el carrito', { timeout: 120000 }
     await page.goto(BASE + '/', { waitUntil: 'domcontentloaded' });
     await page.waitForSelector('#grid-productos .card');
     const id = elegido.normal.id;
-    await page.click(`.btn-add[data-id="${id}"]`);
+    await clickEnCatalogo(page, `.btn-add[data-id="${id}"]`);
     await page.waitForSelector('#drawer.open');
 
     await page.click('#btn-checkout');
@@ -364,15 +380,15 @@ test('E2E: el panel admin permite editar el stock de un producto', { timeout: 12
     const nuevo = original + 1;
 
     await stockInput.fill(String(nuevo));
-    await row.locator('.save-btn').click();
+    await page.locator('#admin-guardar-todo').click();
     await page.waitForFunction(() =>
       /Guardado/.test(document.querySelector('#admin-msg')?.textContent || '')
     );
     const msg = await page.locator('#admin-msg').textContent();
-    assert.ok(msg.includes(String(nuevo)), `mensaje sin stock nuevo: ${msg}`);
+    assert.ok(/^Guardados \d+ productos\.$/.test(msg), `mensaje sin resumen de guardado: ${msg}`);
 
     // Restaura el stock original vía API para no ensuciar la BD
-    const token = await page.evaluate(() => localStorage.getItem('bakery_admin_token'));
+    const token = (await context.cookies()).find((c) => c.name === 'bakery_admin_token')?.value;
     const restore = await fetch(BASE + `/api/admin/productos/${id}`, {
       method: 'PATCH',
       headers: {
@@ -421,7 +437,7 @@ test('E2E: el panel admin edita el contenido de la portada y se refleja en la ti
     );
 
     // Restaura el valor original vía API
-    const token = await page.evaluate(() => localStorage.getItem('bakery_admin_token'));
+    const token = (await context.cookies()).find((c) => c.name === 'bakery_admin_token')?.value;
     const restore = await fetch(BASE + '/api/admin/contenido', {
       method: 'PUT',
       headers: {
@@ -478,7 +494,7 @@ test('E2E: el panel admin cambia el estado de un pedido', { timeout: 120000 }, a
     assert.ok(msg.includes('entregado'), `mensaje sin estado nuevo: ${msg}`);
 
     // El estado queda persistido vía API
-    const token = await page.evaluate(() => localStorage.getItem('bakery_admin_token'));
+    const token = (await context.cookies()).find((c) => c.name === 'bakery_admin_token')?.value;
     const list = await fetch(BASE + '/api/admin/pedidos', {
       headers: { 'X-Tenant-Slug': TENANT, Authorization: `Bearer ${token}` },
     });
@@ -537,7 +553,7 @@ test('E2E: el panel admin crea un producto nuevo con imagen subida', { timeout: 
     assert.ok(imgSrc && imgSrc.startsWith('/api/imagenes/'), `imagen esperada en /api/imagenes/, se obtuvo: ${imgSrc}`);
 
     // Limpieza vía API: producto y archivo subido
-    const token = await page.evaluate(() => localStorage.getItem('bakery_admin_token'));
+    const token = (await context.cookies()).find((c) => c.name === 'bakery_admin_token')?.value;
     const del = await fetch(BASE + `/api/admin/productos/${id}`, {
       method: 'DELETE',
       headers: { 'X-Tenant-Slug': TENANT, Authorization: `Bearer ${token}` },

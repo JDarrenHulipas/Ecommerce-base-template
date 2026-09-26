@@ -2,8 +2,8 @@ const { Router } = require('express');
 const crypto = require('crypto');
 const path = require('path');
 const multer = require('multer');
-const { adminUsername, adminPassword, adminSecret } = require('../config/env');
-const { firmarToken, adminAuth } = require('../middleware/adminAuth');
+const { adminUsername, adminPassword, adminSecret, adminTokenTtl } = require('../config/env');
+const { firmarToken, adminAuth, COOKIE_NAME } = require('../middleware/adminAuth');
 const { loginLimiter } = require('../middleware/rateLimit');
 const { subirImagen, borrarImagen } = require('../storage');
 
@@ -49,11 +49,33 @@ router.post('/login', loginLimiter, (req, res) => {
   if (!okUsuario || !okPassword) {
     return res.status(401).json({ error: 'Credenciales inválidas' });
   }
-  res.json({ token: firmarToken() });
+  const token = firmarToken();
+  // Cookie de sesión: httpOnly (JS no puede leerla -> roba-tokens por XSS),
+  // SameSite=Strict (no se envía en peticiones cross-site -> CSRF) y Secure
+  // en producción. El token también se devuelve para clientes API/tests.
+  res.cookie(COOKIE_NAME, token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+    path: '/',
+    maxAge: adminTokenTtl * 1000,
+  });
+  res.json({ token });
 });
 
-// El resto de rutas admin exigen token Bearer
+// POST /api/admin/logout -> borra la cookie de sesión (sin auth: borra la tuya)
+router.post('/logout', (req, res) => {
+  res.clearCookie(COOKIE_NAME, { path: '/' });
+  res.json({ ok: true });
+});
+
+// El resto de rutas admin exigen token (cookie o Bearer)
 router.use(adminAuth);
+
+// GET /api/admin/session -> valida la cookie para restaurar el panel al recargar
+router.get('/session', (req, res) => {
+  res.json({ ok: true });
+});
 
 // GET /api/admin/tiendas -> lista las tiendas (multi-tenant)
 router.get('/tiendas', async (req, res, next) => {
