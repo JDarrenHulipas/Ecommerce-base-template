@@ -32,7 +32,13 @@ const App = (() => {
   let productos = [];
   let categoriaActiva = 'todas';
   let paginaActiva = 1;
-  const POR_PAGINA = 12;
+  // Máximo de cards por página: móvil 3, tablet 6, escritorio 12
+  const getPorPagina = () => {
+    const w = window.innerWidth;
+    if (w <= 760) return 3;
+    if (w <= 1023) return 6;
+    return 12;
+  };
   let productoActivo = null;
 
   // Estado del configurador de tartas
@@ -146,10 +152,11 @@ const App = (() => {
         ? productos
         : productos.filter((p) => p.categoria === categoriaActiva);
 
-    const totalPaginas = Math.max(1, Math.ceil(filtrados.length / POR_PAGINA));
+    const porPagina = getPorPagina();
+    const totalPaginas = Math.max(1, Math.ceil(filtrados.length / porPagina));
     if (paginaActiva > totalPaginas) paginaActiva = totalPaginas;
-    const inicio = (paginaActiva - 1) * POR_PAGINA;
-    const pagina = filtrados.slice(inicio, inicio + POR_PAGINA);
+    const inicio = (paginaActiva - 1) * porPagina;
+    const pagina = filtrados.slice(inicio, inicio + porPagina);
 
     renderPagination(totalPaginas);
 
@@ -196,9 +203,9 @@ const App = (() => {
 
       card.prepend(imgSlot);
 
-      // Classics: el botón abre configurador (tamano/altura/extras), no añade directo
+      // Classics y tarta base: el botón abre configurador (tamano/altura/extras), no añade directo
       const btnAdd = card.querySelector('.btn-add');
-      if (esClasico(p)) btnAdd.textContent = p.stock <= 0 ? 'Agotado' : 'Personalizar';
+      if (esClasico(p) || esTartaBase(p)) btnAdd.textContent = p.stock <= 0 ? 'Agotado' : 'Personalizar';
       card.querySelector('.btn-add').addEventListener('click', (e) => {
         e.stopPropagation();
         if (esClasico(p)) { abrirConfig(p); return; }
@@ -208,11 +215,8 @@ const App = (() => {
         abrirDrawer();
       });
 
+      // Click en la tarjeta (fuera del botón) -> ficha con ingredientes
       card.addEventListener('click', () => {
-        const agotado = p.stock <= 0 || p.disponible === false;
-        if (agotado) { abrirModal(p); return; }
-        if (esClasico(p)) { abrirConfig(p); return; }
-        if (esTartaBase(p)) { abrirConfig(); return; }
         abrirModal(p);
       });
 
@@ -240,7 +244,7 @@ const App = (() => {
         b.addEventListener('click', () => {
           paginaActiva = pagina;
           renderGrid();
-          document.getElementById('productos').scrollIntoView({ behavior: 'smooth', block: 'start' });
+          grid.scrollIntoView({ behavior: 'smooth', block: 'start' });
         });
       }
       pagination.appendChild(b);
@@ -361,8 +365,12 @@ const App = (() => {
       modalImg.style.cssText = img.style;
     }
 
+    const personalizable = esClasico(p) || esTartaBase(p);
     modalAdd.disabled = p.stock <= 0;
-    modalAdd.textContent = p.stock <= 0 ? 'Agotado' : 'Añadir al carrito';
+    modalAdd.textContent = p.stock <= 0
+      ? 'Agotado'
+      : (personalizable ? 'Personalizar' : 'Añadir al carrito');
+    modalAdd.dataset.mode = personalizable ? 'config' : 'cart';
 
     modal.classList.add('open');
     modalOverlay.classList.add('open');
@@ -713,11 +721,33 @@ const App = (() => {
       lastScrollY = y;
     }, { passive: true });
 
+    // Re-render al cambiar de tamaño (móvil 3 / tablet 6 / escritorio 12 por página)
+    let resizeTimer = null;
+    let lastPorPagina = getPorPagina();
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
+        const actual = getPorPagina();
+        if (actual !== lastPorPagina) {
+          lastPorPagina = actual;
+          paginaActiva = 1;
+          renderGrid();
+        }
+      }, 150);
+    });
+
     $('#modal-close').addEventListener('click', cerrarModal);
     modalOverlay.addEventListener('click', cerrarModal);
     modalAdd.addEventListener('click', () => {
       if (!productoActivo) {
         notify('No hay ningún producto seleccionado.');
+        return;
+      }
+      if (modalAdd.dataset.mode === 'config') {
+        const p = productoActivo;
+        cerrarModal();
+        if (esTartaBase(p)) abrirConfig();
+        else abrirConfig(p);
         return;
       }
       CartStore.add(productoActivo);

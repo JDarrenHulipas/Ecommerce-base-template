@@ -113,8 +113,8 @@ const AdminApp = (() => {
       <tr data-id="${p.id}" class="${p.disponible ? '' : 'out-of-stock'}">
         <td>
           <div class="p-nombre">${escapeHtml(p.nombre)}</div>
-          <input type="text" class="edit-nombre" value="${escapeHtml(p.nombre)}" aria-label="Nombre del producto">
-          <input type="text" class="edit-desc" value="${escapeHtml(p.descripcion || '')}" aria-label="Descripción del producto">
+          <input type="text" class="edit-nombre" value="${escapeHtml(p.nombre)}" placeholder="Nombre del producto" aria-label="Nombre del producto">
+          <input type="text" class="edit-desc" value="${escapeHtml(p.descripcion || '')}" placeholder="Descripción del producto" aria-label="Descripción del producto">
         </td>
         <td><textarea class="edit-ing" rows="3" aria-label="Ingredientes del producto">${escapeHtml(p.ingredientes || '')}</textarea></td>
         <td><input type="text" class="edit-categoria" list="categorias-datalist" value="${escapeHtml(p.categoria || '')}" placeholder="Sin categoría" aria-label="Categoría del producto"></td>
