@@ -1,13 +1,15 @@
 # ============================================================
-# BakeryCloud - CI/CD (GitHub Actions)
+# BakeryCloud - CI (GitHub Actions)
 #
-#  - push a `master`  ->  tests (docker compose completo) -> deploy EC2
+#  - push a `master`  ->  tests (docker compose completo):
+#    tests de integración (API + admin) y tests E2E (Playwright)
 #
-# Secretos necesarios para el deploy (Settings > Secrets > Actions):
-#   EC2_HOST, EC2_SSH_KEY (clave privada del key pair de la EC2),
-#   DATABASE_URL (rol bakery_api, RDS), DB_INIT_URL (usuario maestro),
-#   DEFAULT_TENANT_SLUG, ADMIN_USERNAME, ADMIN_PASSWORD, ADMIN_SECRET,
-#   S3_BUCKET, S3_REGION
+# El despliegue a producción es manual con Fly.io:
+#   fly deploy   (app: bakerycloud-kokoro)
+#
+# Historial: antes había un job que subía el código a una EC2 con
+# docker compose prod (RDS); se eliminó cuando la producción pasó
+# a Fly.io y la EC2 se dio de baja.
 # ============================================================
 
 name: CI/CD
@@ -62,40 +64,3 @@ jobs:
         run: |
           npx playwright install --with-deps chromium
           npm run test:e2e
-
-  deploy:
-    needs: test
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Subir el código a la EC2 (sin .env ni .git)
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ec2-user
-          key: ${{ secrets.EC2_SSH_KEY }}
-          source: "backend,frontend,db,docker,infra,.env.example"
-          target: /app/bakerycloud
-
-      - name: Escribir .env y desplegar
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ec2-user
-          key: ${{ secrets.EC2_SSH_KEY }}
-          script: |
-            set -euo pipefail
-            cat > /app/bakerycloud/.env <<'EOF'
-            DATABASE_URL=${{ secrets.DATABASE_URL }}
-            DB_INIT_URL=${{ secrets.DB_INIT_URL }}
-            DEFAULT_TENANT_SLUG=${{ secrets.DEFAULT_TENANT_SLUG }}
-            ADMIN_USERNAME=${{ secrets.ADMIN_USERNAME }}
-            ADMIN_PASSWORD=${{ secrets.ADMIN_PASSWORD }}
-            ADMIN_SECRET=${{ secrets.ADMIN_SECRET }}
-            S3_BUCKET=${{ secrets.S3_BUCKET }}
-            S3_REGION=${{ secrets.S3_REGION }}
-            EOF
-            cd /app/bakerycloud
-            chmod +x docker/deploy.sh
-            ./docker/deploy.sh

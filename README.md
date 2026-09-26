@@ -69,7 +69,7 @@ bakerycloud/
 │   ├── ec2/user_data.sh        # bootstrap de la EC2 (Docker + compose)
 │   └── README.md               # guía de despliegue e infraestructura
 ├── docs/arquitectura/          # documentación técnica
-├── .github/workflows/deploy.yml # CI/CD: tests en cada push (+ deploy opcional a EC2)
+├── .github/workflows/deploy.yml # CI: tests en cada push a master (producción: fly deploy)
 ├── fly.toml                    # config de Fly.io (app, región, health checks)
 ├── flyio-guide.md              # guía de referencia de Fly.io
 ├── CHANGELOG.md
@@ -164,24 +164,27 @@ exportable** con la CLI y no se guarda en el repositorio.
 > Archivo `fly.toml` en la raíz (app, región y health checks). La guía de referencia
 > está en `flyio-guide.md`.
 
-## Despliegue en AWS (IaC + CI/CD alternativo)
+## Despliegue en AWS (IaC legado)
 
-La infraestructura vive en `infra/aws/` (Terraform) y el pipeline de CI/CD en
-`.github/workflows/deploy.yml`. Guía completa: **`infra/aws/README.md`**.
+La infraestructura vive en `infra/aws/` (Terraform) y los tests de CI en
+`.github/workflows/deploy.yml` (el job de deploy a EC2 se eliminó cuando la
+producción pasó a Fly.io). Guía completa: **`infra/aws/README.md`**.
 
 ```bash
 # 1. Crear la infraestructura (una vez)
 cd infra/aws
 terraform init && terraform apply
 
-# 2. Configurar los secretos en GitHub (ver infra/aws/README.md) y hacer push a master
-git push origin master   # tests siempre; deploy a la EC2 solo si hay secretos EC2_*
+# 2. Push a master: ejecuta los tests (CI); el despliegue es manual
+git push origin master
 ```
 
-El primer despliegue inicializa la BD de RDS automáticamente (schema → roles →
-seed → migraciones → seed de Kokoro) usando `DB_INIT_URL`; en los siguientes
-solo aplica las migraciones, sin tocar los datos. Con `S3_BUCKET` definido, las
-imágenes del admin se guardan en S3 en vez del disco local.
+Con la infraestructura levantada, `docker/deploy.sh` sigue disponible para un
+despliegue manual sobre EC2/RDS: inicializa la BD en el primer arranque
+(schema → roles → seed → migraciones → seed de Kokoro) usando `DB_INIT_URL`;
+en los siguientes solo aplica las migraciones, sin tocar los datos. Con
+`S3_BUCKET` definido, las imágenes del admin se guardan en S3 en vez del disco
+local.
 
 ### Alternativa: arranque manual (desarrollo con `node`)
 
