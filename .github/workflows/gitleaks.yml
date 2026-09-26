@@ -1,0 +1,41 @@
+# ============================================================
+# BakeryCloud - Escaneo de secretos (gitleaks)
+#
+# DEFENSA CONTRA "credenciales en el repo":
+#   - Escanea el historial completo en cada push/PR (fetch-depth: 0).
+#   - Sube los hallazgos a GitHub Code Scanning (alertas en Security).
+#   - Si alguien introduce una key/password/token, el workflow se pone
+#     en rojo y aparece una alerta antes de que un bot la encuentre.
+#   - Repo personal -> no hace falta licencia de gitleaks.
+# ============================================================
+
+name: Secret scan
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 4 * * 1" # semanal (lunes 04:00 UTC)
+
+permissions:
+  contents: read
+  security-events: write
+  pull-requests: write
+
+concurrency:
+  group: secret-scan-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  gitleaks:
+    name: gitleaks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0 # historial completo
+
+      - uses: gitleaks/gitleaks-action@v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
