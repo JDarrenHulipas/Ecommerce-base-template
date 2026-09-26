@@ -11,7 +11,7 @@
 # Variables opcionales (por defecto sirven para desarrollo local):
 #   POSTGRES_DB / POSTGRES_USER / POSTGRES_PASSWORD / POSTGRES_PORT
 #   BAKERY_API_PASSWORD   (contraseña del rol bakery_api)
-#   ADMIN_PASSWORD / ADMIN_SECRET / DEFAULT_TENANT_SLUG
+#   ADMIN_USERNAME / ADMIN_PASSWORD / ADMIN_SECRET / DEFAULT_TENANT_SLUG
 # ============================================================
 
 name: bakerycloud
@@ -48,6 +48,7 @@ services:
       PORT: 3000
       DATABASE_URL: postgres://bakery_api:${BAKERY_API_PASSWORD:-cambia_esta_password}@postgres:5432/${POSTGRES_DB:-bakerycloud}
       DEFAULT_TENANT_SLUG: ${DEFAULT_TENANT_SLUG:-kokorocakes}
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-cambia_esta_admin}
       ADMIN_SECRET: ${ADMIN_SECRET:-cambia_esta_clave}
       ADMIN_TOKEN_TTL: "86400"
