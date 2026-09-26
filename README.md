@@ -9,12 +9,13 @@
 |---|---|
 | Frontend | JavaScript vanilla (SPA) + Design System basado en variables de tema |
 | Backend | Node.js + Express (REST API multi-tenant) |
-| Base de datos | PostgreSQL (multi-tenant con Row Level Security) |
+| Base de datos | PostgreSQL (multi-tenant con Row Level Security) — producción: **Supabase**; dev: Docker |
 | Almacenamiento | AWS S3 (opcional) con degradado a disco local para desarrollo |
-| Servidores | AWS región España `eu-south-2` (EC2 / RDS) |
+| Hosting producción | **Fly.io** (app `bakerycloud-kokoro`, deploy manual con `fly deploy`) |
+| Infraestructura (IaC) | AWS región España `eu-south-2` (EC2 / RDS) con Terraform |
 | Contenedores | Docker + Docker Compose |
 | Red / CDN | Cloudflare (DNS, SSL, caché) |
-| CI/CD | GitHub Actions (deploy con `git push main`) |
+| CI/CD | GitHub Actions: tests en cada push a `master` |
 
 ## Estructura del proyecto
 
@@ -48,7 +49,7 @@ bakerycloud/
 │   ├── roles.sql               # rol bakery_api (privilegios mínimos)
 │   ├── seed.sql                # datos de ejemplo
 │   ├── seed_kokoro.sql         # catálogo de Kokoro Cakes
-│   └── migrations/             # cambios de esquema versionados (001-003)
+│   └── migrations/             # cambios de esquema versionados (001-004)
 ├── docker/
 │   ├── docker-compose.yml      # stack completo (web + api + postgres) [dev]
 │   ├── docker-compose.prod.yml # stack de producción (web + api, sin postgres local)
@@ -68,7 +69,10 @@ bakerycloud/
 │   ├── ec2/user_data.sh        # bootstrap de la EC2 (Docker + compose)
 │   └── README.md               # guía de despliegue e infraestructura
 ├── docs/arquitectura/          # documentación técnica
-├── .github/workflows/deploy.yml # CI/CD: tests + deploy por SSH a EC2
+├── .github/workflows/deploy.yml # CI/CD: tests en cada push (+ deploy opcional a EC2)
+├── fly.toml                    # config de Fly.io (app, región, health checks)
+├── flyio-guide.md              # guía de referencia de Fly.io
+├── CHANGELOG.md
 ├── .env.example
 └── README.md
 ```
@@ -96,7 +100,17 @@ bakerycloud/
 - [x] Subida de imágenes del admin con doble almacenamiento: disco local (desarrollo) o **S3** (producción), misma URL pública
 - [x] Suite de integración del backend (health, productos, pedidos, opciones, contactos, contenido, admin) + tests E2E de Playwright
 - [x] AWS `eu-south-2` con Terraform: VPC, EC2 (Docker), RDS PostgreSQL 16, S3 e IAM
-- [x] CI/CD con GitHub Actions: tests automáticos + deploy a la EC2 por SSH (init/migraciones de BD idempotentes)
+- [x] CI/CD con GitHub Actions: tests automáticos (API + E2E) en cada push a `master`
+- [x] **Producción en Fly.io** (`bakerycloud-kokoro`) + dominio propio; despliegue con `fly deploy`
+- [x] **Seguridad**: sesión admin en cookie `httpOnly` + `SameSite=Strict` (24 h) en lugar de token en
+  LocalStorage, cabecera CSRF `X-Requested-With` obligatoria en mutaciones autenticadas por cookie,
+  rate limiting por IP con tabla `rate_limits` en Postgres (login: 10/15 min · mutaciones: 30/min en
+  producción) y `X-Tenant-Slug` restringido en producción (solo subdominio o tienda por defecto)
+- [x] **Estabilidad**: pool de conexiones endurecido (timeouts, `pool.on('error')`, sin conexiones
+  huerfanas) y resolucion de tenant con try/catch (503 en vez de crash); 404 inmediato para
+  `/api/imagenes` inexistentes
+- [x] **Productos con pedidos borrables**: el DELETE desvincula las líneas (`pedido_items.producto_id
+  = NULL`) conservando nombre, precio y configuración del historial
 - [ ] Cloudflare + lanzamiento (semanas 9-10)
 - [x] Prerrequisitos locales: **Node.js 20+** instalado ✓, **Docker Desktop** instalado ✓
 
@@ -127,7 +141,26 @@ docker compose -f docker/docker-compose.yml down -v     # borrar también la BD
 
 > La BD se inicializa **solo la primera vez** (schema → roles → seed → migraciones → seed de Kokoro). Si cambias `db/*.sql`, borra el volumen con `down -v` para regenerarla.
 
-## Despliegue en AWS (producción)
+## Despliegue en Fly.io (producción actual)
+
+La tienda **kokorocakes.darrenhulipas.com** corre en Fly.io (app `bakerycloud-kokoro`)
+con la BD gestionada en Supabase (`DATABASE_URL` en `backend/.env`) y las imágenes en
+S3. El despliegue es manual desde la máquina con Fly CLI:
+
+```bash
+fly deploy --ha=false     # compila y publica la nueva versión
+```
+
+Verificación tras cada deploy: `GET /api/health` → `200` y `GET /api/productos` con
+`X-Tenant-Slug: kokorocakes`.
+
+Los secretos viven en Fly (`fly secrets set ...`); el valor de los secretos **no es
+exportable** con la CLI y no se guarda en el repositorio.
+
+> Archivo `fly.toml` en la raíz (app, región y health checks). La guía de referencia
+> está en `flyio-guide.md`.
+
+## Despliegue en AWS (IaC + CI/CD alternativo)
 
 La infraestructura vive en `infra/aws/` (Terraform) y el pipeline de CI/CD en
 `.github/workflows/deploy.yml`. Guía completa: **`infra/aws/README.md`**.
@@ -138,7 +171,7 @@ cd infra/aws
 terraform init && terraform apply
 
 # 2. Configurar los secretos en GitHub (ver infra/aws/README.md) y hacer push a master
-git push origin master   # tests → deploy automático a la EC2
+git push origin master   # tests siempre; deploy a la EC2 solo si hay secretos EC2_*
 ```
 
 El primer despliegue inicializa la BD de RDS automáticamente (schema → roles →
@@ -183,37 +216,65 @@ npm install
 npm run dev            # http://localhost:3000
 ```
 
-Endpoints (el tenant se resuelve por cabecera `X-Tenant-Slug` en desarrollo):
+Endpoints ordenados por método (el tenant se resuelve por cabecera `X-Tenant-Slug`
+en desarrollo; en producción solo se acepta si coincide con el subdominio o con la
+tienda por defecto):
 
-| Método | Ruta | Descripción |
-|---|---|---|
-| GET | `/api/health` | Estado y tienda activa |
-| GET | `/api/productos` | Productos de la tienda activa |
-| GET | `/api/productos/:slug` | Detalle de un producto |
-| GET | `/api/opciones` | Catálogo del configurador (tarta base + opciones agrupadas) |
-| GET | `/api/pedidos` | Pedidos de la tienda activa |
-| POST | `/api/pedidos` | Crea un pedido `{ cliente: {nombre,email}, items: [{producto_id, cantidad, configuracion?}] }` |
-| GET | `/api/contactos` | Consultas del formulario de contacto de la tienda activa |
-| POST | `/api/contactos` | Guarda una consulta `{ nombre, email, mensaje }` |
-| GET | `/api/contenido` | Textos de la portada (anuncios, hero, nosotros, contacto, footer) de la tienda activa |
-| POST | `/api/admin/login` | Login admin con `ADMIN_PASSWORD` → JWT (cabecera `X-Tenant-Slug` elige la tienda) |
-| GET | `/api/admin/tiendas` | Lista las tiendas del sistema (requiere token) |
-| GET | `/api/admin/productos` | Catálogo completo de la tienda activa, incluye ingredientes (requiere token) |
-| POST | `/api/admin/productos` | Crea un producto `{ nombre, categoria?, imagen?, precio?, stock?, ... }`; slug autogenerado y categoría auto-creada (requiere token) |
-| PATCH | `/api/admin/productos/:id` | Actualiza stock, precio, disponibilidad, nombre, descripción, ingredientes o imagen (`imagen_s3`, URL) (requiere token) |
-| DELETE | `/api/admin/productos/:id` | Elimina un producto; 409 si tiene pedidos asociados (requiere token) |
-| GET | `/api/admin/pedidos` | Pedidos de la tienda activa con cliente e items (requiere token) |
-| PATCH | `/api/admin/pedidos/:id/estado` | Cambia el estado de un pedido `{ estado: "confirmado"|"enviado"|"entregado"|"cancelado" }` (requiere token) |
-| GET | `/api/admin/contactos` | Consultas del formulario de contacto de la tienda activa (requiere token) |
-| GET | `/api/admin/contenido` | Textos editables de la portada de la tienda activa (requiere token) |
-| PUT | `/api/admin/contenido` | Guarda los textos de la portada `{ contenido: [{ clave, valor }] }` (requiere token) |
-| POST | `/api/admin/imagenes` | Sube una imagen (multipart, campo `file`; JPEG/PNG/WebP/GIF, máx. 5 MB) → `{ url: "/api/imagenes/<archivo>" }` (requiere token) |
-| DELETE | `/api/admin/imagenes/:archivo` | Borra un archivo de imagen subido; 404 si no existe (requiere token) |
-| GET | `/api/imagenes/<archivo>` | Público: sirve las imágenes subidas por el admin (desde S3 o disco local según `S3_BUCKET`) |
+### GET
 
-> El panel admin vive en `http://localhost:3000/admin/` y guarda el JWT en
-> LocalStorage. Solo edita la tienda seleccionada (RLS): los productos de otras
-> tiendas son invisibles para la API admin.
+| Ruta | Descripción |
+|---|---|
+| `/api/health` | Estado y tienda activa |
+| `/api/productos` | Productos de la tienda activa |
+| `/api/productos/:slug` | Detalle de un producto |
+| `/api/opciones` | Catálogo del configurador (tarta base + opciones agrupadas) |
+| `/api/pedidos` | Pedidos de la tienda activa |
+| `/api/contactos` | Consultas del formulario de contacto de la tienda activa |
+| `/api/contenido` | Textos de la portada (anuncios, hero, nosotros, contacto, footer) |
+| `/api/imagenes/<archivo>` | Público: sirve las imágenes subidas por el admin (S3 o disco local) |
+| `/api/admin/session` | `200 { ok: true }` si la sesión admin es válida, `401` si no (para restaurar el panel al recargar) |
+| `/api/admin/tiendas` | Lista las tiendas del sistema (requiere token) |
+| `/api/admin/productos` | Catálogo completo con ingredientes (requiere token) |
+| `/api/admin/pedidos` | Pedidos con cliente e items (requiere token) |
+| `/api/admin/contactos` | Consultas de contacto (requiere token) |
+| `/api/admin/contenido` | Textos editables de la portada (requiere token) |
+
+### POST
+
+| Ruta | Descripción |
+|---|---|
+| `/api/pedidos` | Crea un pedido `{ cliente: {nombre,email}, items: [{producto_id, cantidad, configuracion?}] }` (precios calculados desde la BD) |
+| `/api/contactos` | Guarda una consulta `{ nombre, email, mensaje }` |
+| `/api/admin/login` | Login `{ username, password }` con `ADMIN_USERNAME`/`ADMIN_PASSWORD` → cookie `httpOnly` de 24 h + `{ token }` |
+| `/api/admin/logout` | Borra la cookie de sesión |
+| `/api/admin/productos` | Crea un producto `{ nombre, categoria?, imagen?, precio?, stock?, ... }`; slug autogenerado y categoría auto-creada (requiere token) |
+| `/api/admin/imagenes` | Sube una imagen (multipart, campo `file`; JPEG/PNG/WebP/GIF, máx. 5 MB) → `{ url: "/api/imagenes/<archivo>" }` (requiere token) |
+
+### PUT
+
+| Ruta | Descripción |
+|---|---|
+| `/api/admin/contenido` | Guarda los textos de la portada `{ contenido: [{ clave, valor }] }` (requiere token) |
+
+### PATCH
+
+| Ruta | Descripción |
+|---|---|
+| `/api/admin/productos/:id` | Actualiza stock, precio, disponibilidad, nombre, descripción, ingredientes o imagen (`imagen_s3`, URL) (requiere token) |
+| `/api/admin/pedidos/:id/estado` | Cambia el estado `{ estado: "confirmado"\|"enviado"\|"entregado"\|"cancelado" }` (requiere token) |
+
+### DELETE
+
+| Ruta | Descripción |
+|---|---|
+| `/api/admin/productos/:id` | Borra el producto; desvincula sus líneas de pedido conservando nombre/precio/historial (`producto_id = NULL`) (requiere token) |
+| `/api/admin/imagenes/:archivo` | Borra un archivo de imagen subido; 404 si no existe (requiere token) |
+
+> **Autenticación admin**: cookie `bakery_admin_token` (`httpOnly`, `SameSite=Strict`,
+> 24 h) o `Authorization: Bearer <token>`. Si la autenticación viene de la cookie,
+> las peticiones que modifican datos deben añadir `X-Requested-With: XMLHttpRequest`
+> (protección CSRF). El panel vive en `http://localhost:3000/admin/` y solo edita
+> la tienda seleccionada (RLS): los productos de otras tiendas son invisibles.
 
 ### Configurador de tartas (frontend)
 
@@ -223,17 +284,27 @@ La tarjeta **"Construye tu tarta"** abre un asistente de 6 pasos (tamaño, altur
 
 ```bash
 cd backend
-npm test          # toda la suite de integración (health, productos, pedidos, opciones, contactos, admin)
+npm test          # toda la suite (api + admin + e2e)
 npm run test:api  # solo api.test.js + admin.test.js
 npm run test:admin # solo admin.test.js
 npm run test:e2e  # Playwright (requiere el servidor en :3000 y Chromium descargado)
 ```
 
-Configuración para el panel admin en `.env`:
+Estado actual de la suite: **`test:api` 50 pass / 0 fail** · **`test:e2e` 14/14**
+(1 skip: el test S3 de imágenes, que necesita `S3_BUCKET` + `S3_ENDPOINT`).
+
+Los tests **no dependen de fixtures concretos**: usan productos existentes del
+catálogo real y crean/borran sus propios datos de prueba (productos, clientes,
+pedidos), por lo que siguen en verde aunque cambie el catálogo.
+
+Configuración del panel admin en `backend/.env` (si faltan credenciales,
+`/api/admin/*` responde **503** y los tests de login se marcan como fallidos/saltados):
 
 ```
+ADMIN_USERNAME=admin
 ADMIN_PASSWORD=super-secreto
 ADMIN_SECRET=clave-firma-jwt
+ADMIN_TOKEN_TTL=86400        # duración de la sesión en segundos (24 h)
 ```
 
 Almacenamiento de imágenes en `.env`:
@@ -243,7 +314,3 @@ Almacenamiento de imágenes en `.env`:
 S3_BUCKET=bakerycloud-prod-uploads
 S3_REGION=eu-south-2
 ```
-
-Si faltan `ADMIN_PASSWORD`/`ADMIN_SECRET`, las rutas `/api/admin` responden
-**503** (panel no disponible) y los tests de login se marcan como
-fallidos/saltados.
