@@ -1,26 +1,26 @@
 /* =========================================================
-   BakeryCloud Admin — Apple-style UI
+   BakeryCloud Admin — Apple-style UI, paleta Kokoro
    ========================================================= */
 
 :root {
-  --ap-bg: #f5f5f7;
+  --ap-bg: #f5eee8;
   --ap-surface: #ffffff;
-  --ap-fill: #f0f0f2;
-  --ap-fill-2: #e8e8ed;
-  --ap-text: #1d1d1f;
-  --ap-text-2: #6e6e73;
-  --ap-text-3: #86868b;
-  --ap-separator: rgba(0, 0, 0, 0.07);
-  --ap-blue: #0071e3;
-  --ap-blue-hover: #0077ed;
-  --ap-red: #ff3b30;
-  --ap-green: #34c759;
+  --ap-fill: #efe7e0;
+  --ap-fill-2: #e6dbd2;
+  --ap-text: #2b2625;
+  --ap-text-2: #6b5f5a;
+  --ap-text-3: #8d7f78;
+  --ap-separator: rgba(43, 38, 37, 0.09);
+  --ap-blue: #c0527a;
+  --ap-blue-hover: #a63d63;
+  --ap-red: #b3261e;
+  --ap-green: #1e8e4c;
   --ap-orange: #ff9f0a;
   --ap-radius-lg: 16px;
   --ap-radius-md: 12px;
   --ap-radius-sm: 10px;
-  --ap-shadow-card: 0 1px 2px rgba(0, 0, 0, 0.04), 0 8px 30px rgba(0, 0, 0, 0.06);
-  --ap-shadow-pop: 0 4px 16px rgba(0, 0, 0, 0.12);
+  --ap-shadow-card: 0 1px 2px rgba(43, 38, 37, 0.05), 0 8px 30px rgba(43, 38, 37, 0.08);
+  --ap-shadow-pop: 0 4px 16px rgba(43, 38, 37, 0.14);
   --ap-font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
     "Segoe UI", system-ui, Roboto, Helvetica, Arial, sans-serif;
 }
@@ -53,7 +53,7 @@ textarea {
   gap: 1rem;
   flex-wrap: wrap;
   padding: 0.85rem 2rem;
-  background: rgba(255, 255, 255, 0.72);
+  background: rgba(245, 238, 232, 0.78);
   backdrop-filter: saturate(180%) blur(20px);
   -webkit-backdrop-filter: saturate(180%) blur(20px);
   color: var(--ap-text);
@@ -88,7 +88,7 @@ textarea {
   padding: 0.45rem 1.9rem 0.45rem 0.75rem;
   border: none;
   border-radius: var(--ap-radius-sm);
-  background: var(--ap-fill) url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath fill='%236e6e73' d='M5 6 0 0h10z'/%3E%3C/svg%3E") no-repeat right 0.7rem center;
+  background: var(--ap-fill) url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath fill='%236b5f5a' d='M5 6 0 0h10z'/%3E%3C/svg%3E") no-repeat right 0.7rem center;
   font-size: 0.85rem;
   font-weight: 500;
   color: var(--ap-text);
@@ -119,6 +119,24 @@ textarea {
 
 .admin-tools button:active {
   transform: scale(0.97);
+}
+
+#admin-refresh {
+  background: var(--ap-green);
+  color: #fff;
+}
+
+#admin-refresh:hover {
+  background: #197a41;
+}
+
+#admin-logout {
+  background: var(--ap-red);
+  color: #fff;
+}
+
+#admin-logout:hover {
+  background: #921e18;
 }
 
 /* ---------- Contenido ---------- */
@@ -197,7 +215,7 @@ textarea {
 
 .admin-login input:focus {
   background: var(--ap-surface);
-  box-shadow: 0 0 0 4px rgba(0, 113, 227, 0.18);
+  box-shadow: 0 0 0 4px rgba(192, 82, 122, 0.25);
 }
 
 .admin-login .btn-primary {
@@ -290,7 +308,7 @@ textarea {
 }
 
 .admin-table tbody tr:hover {
-  background: rgba(0, 0, 0, 0.02);
+  background: rgba(192, 82, 122, 0.05);
 }
 
 .admin-table tr:last-child td {
@@ -336,7 +354,7 @@ textarea {
 .admin-table input:focus,
 .admin-table textarea:focus {
   background: var(--ap-surface);
-  box-shadow: 0 0 0 4px rgba(0, 113, 227, 0.18);
+  box-shadow: 0 0 0 4px rgba(192, 82, 122, 0.25);
 }
 
 .admin-table input[type='checkbox'] {
@@ -376,7 +394,7 @@ textarea {
   padding: 0.42rem 0.85rem;
   border: none;
   border-radius: 980px;
-  background: rgba(255, 59, 48, 0.1);
+  background: rgba(179, 38, 30, 0.1);
   color: var(--ap-red);
   font-size: 0.8rem;
   font-weight: 500;
@@ -448,7 +466,7 @@ textarea {
 .contenido-campo input:focus,
 .contenido-campo textarea:focus {
   background: var(--ap-surface);
-  box-shadow: 0 0 0 4px rgba(0, 113, 227, 0.18);
+  box-shadow: 0 0 0 4px rgba(192, 82, 122, 0.25);
 }
 
 .contenido-form .save-btn {
@@ -480,7 +498,7 @@ textarea {
 }
 
 .nuevo-producto summary:hover {
-  background: rgba(0, 0, 0, 0.02);
+  background: rgba(192, 82, 122, 0.05);
 }
 
 .nuevo-producto[open] summary {
@@ -541,7 +559,7 @@ textarea {
 .producto-form-grid input:focus,
 .producto-form-grid textarea:focus {
   background: var(--ap-surface);
-  box-shadow: 0 0 0 4px rgba(0, 113, 227, 0.18);
+  box-shadow: 0 0 0 4px rgba(192, 82, 122, 0.25);
 }
 
 .producto-form .save-btn {
@@ -593,7 +611,7 @@ textarea {
 }
 
 .img-btn:hover {
-  background: rgba(0, 113, 227, 0.12);
+  background: rgba(192, 82, 122, 0.12);
 }
 
 .img-btn:active {
@@ -609,7 +627,7 @@ textarea {
   padding: 0.3rem 0.75rem;
   border: none;
   border-radius: 980px;
-  background: rgba(255, 59, 48, 0.1);
+  background: rgba(179, 38, 30, 0.1);
   color: var(--ap-red);
   cursor: pointer;
   font-size: 0.78rem;
@@ -642,7 +660,7 @@ textarea {
   font-weight: 600;
   text-transform: capitalize;
   cursor: pointer;
-  background: #f0f0f2 url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='6' viewBox='0 0 8 6'%3E%3Cpath fill='%236e6e73' d='M4 6 0 0h8z'/%3E%3C/svg%3E") no-repeat right 0.65rem center;
+  background: var(--ap-fill) url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='6' viewBox='0 0 8 6'%3E%3Cpath fill='%236b5f5a' d='M4 6 0 0h8z'/%3E%3C/svg%3E") no-repeat right 0.65rem center;
   color: var(--ap-text-2);
   transition: filter 0.15s;
 }
@@ -694,11 +712,11 @@ textarea {
   padding: 0.7rem 1.7rem;
   font-size: 0.95rem;
   font-weight: 600;
-  box-shadow: 0 4px 14px rgba(0, 113, 227, 0.3);
+  box-shadow: 0 4px 14px rgba(192, 82, 122, 0.3);
 }
 
 .save-btn--bulk:hover {
-  box-shadow: 0 6px 18px rgba(0, 113, 227, 0.35);
+  box-shadow: 0 6px 18px rgba(192, 82, 122, 0.35);
 }
 
 /* --- Responsive: móvil (max 599px) --- */
