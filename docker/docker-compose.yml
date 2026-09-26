@@ -46,10 +46,10 @@ services:
     environment:
       NODE_ENV: production
       PORT: 3000
-      DATABASE_URL: postgres://bakery_api:${BAKERY_API_PASSWORD:-api_secret_123}@postgres:5432/${POSTGRES_DB:-bakerycloud}
+      DATABASE_URL: postgres://bakery_api:${BAKERY_API_PASSWORD:-cambia_esta_password}@postgres:5432/${POSTGRES_DB:-bakerycloud}
       DEFAULT_TENANT_SLUG: ${DEFAULT_TENANT_SLUG:-kokorocakes}
-      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin1234}
-      ADMIN_SECRET: ${ADMIN_SECRET:-dev-secret-cambiar-en-produccion}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-cambia_esta_admin}
+      ADMIN_SECRET: ${ADMIN_SECRET:-cambia_esta_clave}
       ADMIN_TOKEN_TTL: "86400"
       UPLOAD_DIR: /app/uploads
     volumes:

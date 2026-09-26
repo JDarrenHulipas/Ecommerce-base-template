@@ -106,7 +106,7 @@ Cada entrada indica qué funcionalidad se añadió y cómo usarla.
 - **Validación de pedidos**: `POST /api/pedidos` rechaza cantidades no enteras, negativas o ausentes (400) y configuraciones cuyas opciones no pertenezcan al grupo esperado (tamaño/altura/bizcocho/relleno/decoración/extra).
 - **Seguridad frontend**: escaping XSS (`escapeHtml`) en catálogo, carrito, modal e ingredientes, y `type="button"` en todos los botones del formulario.
 
-**Cómo usarlo:** configurar `ADMIN_PASSWORD` y `ADMIN_SECRET` en `backend/.env`, entrar en `http://localhost:3000/admin/`, elegir tienda y editar stock/precio. La contraseña de desarrollo es `admin1234` (¡cambiar en producción!).
+**Cómo usarlo:** configurar `ADMIN_PASSWORD` y `ADMIN_SECRET` en `backend/.env`, entrar en `http://localhost:3000/admin/`, elegir tienda y editar stock/precio.
 
 ## [0.4.0] - 2026-08-16 — Formulario de contacto real
 

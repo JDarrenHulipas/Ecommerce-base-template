@@ -24,10 +24,10 @@ jobs:
   test:
     runs-on: ubuntu-latest
     env:
-      DATABASE_URL: postgres://bakery_api:api_secret_123@localhost:5432/bakerycloud
+      DATABASE_URL: postgres://bakery_api:cambia_esta_password@localhost:5432/bakerycloud
       DEFAULT_TENANT_SLUG: kokorocakes
-      ADMIN_PASSWORD: admin1234
-      ADMIN_SECRET: dev-secret-cambiar-en-produccion
+      ADMIN_PASSWORD: cambia_esta_admin
+      ADMIN_SECRET: cambia_esta_clave
     steps:
       - uses: actions/checkout@v4
 

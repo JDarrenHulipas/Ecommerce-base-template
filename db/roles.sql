@@ -10,7 +10,7 @@
 -- ============================================================
 
 -- Crear rol (solo la primera vez)
-CREATE ROLE bakery_api LOGIN PASSWORD 'api_secret_123'
+CREATE ROLE bakery_api LOGIN PASSWORD 'cambia_esta_password'
     NOSUPERUSER NOCREATEDB NOCREATEROLE;
 
 -- Acceso a los esquemas
