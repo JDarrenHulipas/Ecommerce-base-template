@@ -343,16 +343,25 @@ router.delete('/productos/:id', async (req, res, next) => {
   try {
     const { id } = req.params;
     try {
+      await req.db.query('BEGIN');
+      // Desvincula las líneas de pedido antes de borrar: conservan nombre,
+      // precio y configuración (historial intacto); producto_id queda NULL.
+      await req.db.query(
+        'UPDATE pedido_items SET producto_id = NULL WHERE tienda_id = $1 AND producto_id = $2',
+        [req.tenant.id, id]
+      );
       const { rowCount } = await req.db.query(
-      'DELETE FROM productos WHERE id = $1 AND tienda_id = $2',
-      [id, req.tenant.id]
-    );
+        'DELETE FROM productos WHERE id = $1 AND tienda_id = $2',
+        [id, req.tenant.id]
+      );
+      await req.db.query('COMMIT');
       if (rowCount === 0) {
         return res.status(404).json({ error: 'Producto no encontrado' });
       }
       res.json({ ok: true });
     } catch (err) {
-      // 23503 = violación de FK: el producto tiene líneas de pedido
+      await req.db.query('ROLLBACK').catch(() => {});
+      // 23503 = violación de FK: otra referencia impide el borrado
       if (err.code === '23503') {
         return res.status(409).json({ error: 'No se puede eliminar: el producto tiene pedidos asociados' });
       }

@@ -157,7 +157,7 @@ test('admin: PATCH valida stock, precio y disponible', async () => {
 
 test('admin: PATCH actualiza los ingredientes de un producto', async () => {
   const lista = await api('/api/admin/productos', { auth: token });
-  const prod = lista.body.productos.find((p) => p.slug === 'bento-chocograve');
+  const prod = lista.body.productos[0];
   assert.ok(prod, 'producto de referencia no encontrado');
 
   const original = prod.ingredientes || '';
@@ -182,7 +182,7 @@ test('admin: PATCH actualiza los ingredientes de un producto', async () => {
 
 test('admin: PATCH actualiza la imagen (imagen_s3) y la persiste', async () => {
   const lista = await api('/api/admin/productos', { auth: token });
-  const prod = lista.body.productos.find((p) => p.slug === 'bento-chocograve');
+  const prod = lista.body.productos[0];
   assert.ok(prod, 'producto de referencia no encontrado');
 
   const original = prod.imagen_s3 || null;
@@ -217,7 +217,7 @@ test('admin: PATCH actualiza la imagen (imagen_s3) y la persiste', async () => {
 
 test('admin: PATCH puede borrar la imagen con una cadena vacía', async () => {
   const lista = await api('/api/admin/productos', { auth: token });
-  const prod = lista.body.productos.find((p) => p.slug === 'bento-chocograve');
+  const prod = lista.body.productos[0];
   assert.ok(prod, 'producto de referencia no encontrado');
   const original = prod.imagen_s3 || null;
 
@@ -391,7 +391,7 @@ test('admin: DELETE /productos no puede borrar productos de otra tienda', async 
   assert.equal(del.status, 200);
 });
 
-test('admin: DELETE /productos devuelve 409 si el producto tiene pedidos', async () => {
+test('admin: DELETE /productos borra el producto y desvincula sus líneas de pedido', async () => {
   // Crea un producto y un pedido que lo use
   const { body: prod } = await api('/api/admin/productos', {
     method: 'POST',
@@ -415,19 +415,37 @@ test('admin: DELETE /productos devuelve 409 si el producto tiene pedidos', async
     tenant: T.maribel,
     auth: token,
   });
-  assert.equal(del.status, 409);
-  assert.match(del.body.error, /pedidos/i);
+  assert.equal(del.status, 200, 'debería poder borrar un producto con pedidos');
 
-  // Limpieza: pedido (cascada de líneas) -> cliente -> producto
+  // Verifica en BD: producto borrado y línea de pedido conservando el
+  // historial (nombre/precio) con producto_id desvinculado (NULL).
   const client = new Client({ connectionString: databaseUrl });
   await client.connect();
   try {
     await client.query('SELECT app.set_tenant(2)');
-    await client.query('DELETE FROM pedidos WHERE id = $1', [pedido.pedido_id]);
-    await client.query('DELETE FROM clientes WHERE email = $1', [email]);
-    await client.query('DELETE FROM productos WHERE id = $1', [prod.id]);
+    const prodRow = await client.query('SELECT id FROM productos WHERE id = $1', [prod.id]);
+    assert.equal(prodRow.rows.length, 0, 'el producto debería haberse borrado');
+    const linea = await client.query(
+      'SELECT producto_id, nombre_producto, precio_unitario FROM pedido_items WHERE pedido_id = $1',
+      [pedido.pedido_id]
+    );
+    assert.equal(linea.rows.length, 1, 'la línea de pedido debe conservarse');
+    assert.equal(linea.rows[0].producto_id, null, 'la línea queda desvinculada del producto');
+    assert.ok(linea.rows[0].nombre_producto, 'conserva el nombre del producto');
+    assert.ok(Number(linea.rows[0].precio_unitario) > 0, 'conserva el precio');
   } finally {
     await client.end();
+  }
+
+  // Limpieza: pedido (cascada de líneas) -> cliente
+  const limpieza = new Client({ connectionString: databaseUrl });
+  await limpieza.connect();
+  try {
+    await limpieza.query('SELECT app.set_tenant(2)');
+    await limpieza.query('DELETE FROM pedidos WHERE id = $1', [pedido.pedido_id]);
+    await limpieza.query('DELETE FROM clientes WHERE email = $1', [email]);
+  } finally {
+    await limpieza.end();
   }
 });
 

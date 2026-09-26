@@ -51,6 +51,15 @@ before(async () => {
   }
 });
 
+// Producto de referencia con descripción y precio > 0: los tests no dependen
+// de fixtures concretos de la BD (el catálogo puede cambiar).
+async function productoReferencia() {
+  const { body } = await api('/api/productos');
+  const prod = (body.productos || []).find((p) => p.descripcion && Number(p.precio) > 0);
+  assert.ok(prod, 'la tienda debe tener un producto con descripción y precio > 0');
+  return prod;
+}
+
 after(async () => {
   server.close();
 });
@@ -125,9 +134,10 @@ test('productos: cada tienda ve solo su catálogo (aislamiento por tenant)', asy
 // ---------------------------------------------------------------------------
 
 test('productos/:slug: devuelve el detalle de un producto existente', async () => {
-  const { status, body } = await api('/api/productos/bento-chocograve');
+  const ref = await productoReferencia();
+  const { status, body } = await api(`/api/productos/${ref.slug}`);
   assert.equal(status, 200);
-  assert.equal(body.slug, 'bento-chocograve');
+  assert.equal(body.slug, ref.slug);
   assert.ok(body.nombre);
   assert.ok(body.descripcion);
   assert.ok(body.precio);
@@ -160,8 +170,8 @@ test('pedidos: lista los pedidos de la tienda activa', async () => {
 // ---------------------------------------------------------------------------
 
 test('pedidos: crea un pedido calculando precios desde la BD', async () => {
-  // Producto real del catálogo de Kokoro Cakes
-  const prod = (await api('/api/productos/bento-chocograve')).body;
+  // Producto real del catálogo (con precio > 0)
+  const prod = await productoReferencia();
   const cantidad = 2;
   const subtotalEsperado = Number(prod.precio) * cantidad;
   const envioEsperado = 2.0;
@@ -237,7 +247,7 @@ test('pedidos: rechaza pedido con producto inexistente (rollback)', async () => 
 });
 
 test('pedidos: rechaza cantidad inválida (negativa, cero o ausente)', async () => {
-  const prod = (await api('/api/productos/bento-chocograve')).body;
+  const prod = await productoReferencia();
   const casos = [
     { cliente: { email: 'qty@example.com' }, items: [{ producto_id: prod.id, cantidad: -2 }] },
     { cliente: { email: 'qty@example.com' }, items: [{ producto_id: prod.id, cantidad: 0 }] },
