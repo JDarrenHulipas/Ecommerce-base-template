@@ -1,21 +1,22 @@
 /* ============================================================
    BakeryCloud - Tema "Kokoro"
-   Colores inspirados en Kokoro Cakes (@kokorocakess):
-   rosa empolvado, blanco rosado y frambuesa. Estilo coquette.
+   Paleta: cherry #65232B · blossom pink #ECAAB2 ·
+   truffle #432720 · ivory #F8E5D7. Estilo aesthetic/coquette.
    ============================================================ */
 
 :root {
-  --crema:        #f5eee8;
-  --beige:        #d9b8ac;
-  --beige-hover:  #c9a294;
-  --frambuesa:    #8a4a5e;
-  --rosa:         #c0527a;
-  --negro:        #2b2625;
+  --crema:        #f8e5d7;  /* ivory — fondo claro */
+  --blossom:      #ecaab2;  /* blossom pink — acento suave */
+  --rosa:         #65232b;  /* cherry — primario (botones, precios, activos) */
+  --frambuesa:    #8c4a50;  /* rosa polvoroso — secundario (derivado de cherry) */
+  --beige:        #dcb6a5;  /* bordes suaves */
+  --beige-hover:  #cfa28f;
+  --negro:        #432720;  /* truffle — texto */
   --blanco:       #ffffff;
   --font-heading: 'Playfair Display', Georgia, serif;
   --font-body:    'Cormorant Garamond', Georgia, serif;
   --radius:       14px;
-  --shadow:       0 10px 30px rgba(43, 38, 37, 0.10);
+  --shadow:       0 10px 30px rgba(67, 39, 32, 0.10);
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -26,7 +27,7 @@ html { scroll-behavior: smooth; }
 
 body {
   font-family: var(--font-body);
-  background: #fffaf6;
+  background: var(--crema);
   color: var(--negro);
   font-size: 18px;
   line-height: 1.6;
@@ -47,9 +48,9 @@ body {
   position: sticky;
   top: 0;
   z-index: 50;
-  background: rgba(245, 238, 232, 0.92);
+  background: rgba(248, 229, 215, 0.92);
   backdrop-filter: blur(8px);
-  border-bottom: 1px solid rgba(104, 20, 20, 0.12);
+  border-bottom: 1px solid rgba(101, 35, 43, 0.12);
   transition: transform 0.3s ease;
 }
 .header.hide { transform: translateY(-100%); }
@@ -187,7 +188,7 @@ body {
 
 .hero-sub {
   font-size: 20px;
-  color: #4a453e;
+  color: rgba(67, 39, 32, 0.78);
   max-width: 460px;
   margin-bottom: 28px;
 }
@@ -196,10 +197,10 @@ body {
   height: 420px;
   border-radius: var(--radius);
   background:
-    radial-gradient(circle at 30% 30%, rgba(255,255,255,0.9), transparent 40%),
-    radial-gradient(circle at 70% 60%, #e8a9c0, transparent 45%),
-    radial-gradient(circle at 50% 80%, #c0527a, transparent 50%),
-    linear-gradient(160deg, #f9e0e6, #ecb4c9);
+    radial-gradient(circle at 30% 28%, rgba(255,255,255,0.75), transparent 42%),
+    radial-gradient(circle at 72% 58%, rgba(101,35,43,0.5), transparent 55%),
+    radial-gradient(circle at 48% 88%, var(--blossom), transparent 58%),
+    linear-gradient(160deg, var(--crema), var(--blossom));
   box-shadow: var(--shadow);
 }
 
@@ -218,7 +219,7 @@ body {
   background: var(--rosa);
   color: var(--blanco);
 }
-.btn-primary:hover { background: #a63d63; transform: translateY(-2px); }
+.btn-primary:hover { background: #4f1d24; transform: translateY(-2px); }
 .btn:disabled {
   opacity: 0.4;
   cursor: not-allowed;
@@ -248,12 +249,12 @@ body {
 }
 
 .section-dark {
-  background: var(--frambuesa);
+  background: var(--rosa);
   color: var(--blanco);
   max-width: none;
   border-radius: 0;
 }
-.section-dark .section-eyebrow { color: #cbc4b4; }
+.section-dark .section-eyebrow { color: #e9c9c1; }
 
 .nosotros {
   max-width: 1200px;
@@ -331,7 +332,7 @@ body {
   cursor: pointer;
   transition: transform 0.2s, box-shadow 0.2s;
 }
-.card:hover { transform: translateY(-6px); box-shadow: 0 14px 34px rgba(43, 38, 37, 0.16); }
+.card:hover { transform: translateY(-6px); box-shadow: 0 14px 34px rgba(67, 39, 32, 0.16); }
 
 /* Animación de entrada escalonada al filtrar categorías */
 @keyframes cardIn {
@@ -344,7 +345,7 @@ body {
 
 .card-image {
   height: 180px;
-  background: linear-gradient(150deg, #f7d6dd, #e8a9c0);
+  background: linear-gradient(150deg, var(--crema), var(--blossom));
 }
 
 .card-body {
@@ -370,7 +371,7 @@ body {
 
 .card-desc {
   font-size: 15px;
-  color: #5a544c;
+  color: rgba(67, 39, 32, 0.75);
   flex: 1;
 }
 
@@ -384,8 +385,8 @@ body {
 .card-price { font-size: 20px; font-weight: 600; color: var(--rosa); }
 
 .btn-add {
-  background: var(--frambuesa);
-  color: var(--blanco);
+  background: var(--blossom);
+  color: var(--negro);
   border: none;
   border-radius: 999px;
   padding: 8px 18px;
@@ -394,9 +395,9 @@ body {
   cursor: pointer;
   transition: all 0.2s;
 }
-.btn-add:hover { background: var(--rosa); }
+.btn-add:hover { background: var(--rosa); color: var(--blanco); }
 .btn-add:disabled,
-.btn-add:disabled:hover { background: var(--frambuesa); opacity: 0.8; }
+.btn-add:disabled:hover { background: var(--beige); color: var(--negro); opacity: 0.8; }
 
 .card-soldout { opacity: 0.55; transition: none; }
 .card-soldout:hover { transform: none; box-shadow: var(--shadow); }
@@ -427,7 +428,7 @@ body {
 /* ---------- Footer ---------- */
 .footer {
   background: var(--negro);
-  color: #b9b2a6;
+  color: #ddccc0;
   text-align: center;
   padding: 28px 24px;
   font-size: 15px;
@@ -466,7 +467,7 @@ body {
   justify-content: space-between;
   align-items: center;
   padding: 20px 24px;
-  border-bottom: 1px solid rgba(104,20,20,0.15);
+  border-bottom: 1px solid rgba(101,35,43,0.15);
 }
 .drawer-head h3 { font-family: var(--font-heading); font-size: 24px; font-weight: 600; }
 
@@ -503,7 +504,7 @@ body {
   width: 56px;
   height: 56px;
   border-radius: 8px;
-  background: linear-gradient(150deg, #f7d6dd, #e8a9c0);
+  background: linear-gradient(150deg, var(--crema), var(--blossom));
   flex-shrink: 0;
 }
 
@@ -534,7 +535,7 @@ body {
 
 .drawer-foot {
   padding: 20px 24px;
-  border-top: 1px solid rgba(104,20,20,0.15);
+  border-top: 1px solid rgba(101,35,43,0.15);
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -568,7 +569,7 @@ body {
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(43, 38, 37, 0.55);
+  background: rgba(67, 39, 32, 0.55);
   backdrop-filter: blur(3px);
   z-index: 120;
   opacity: 0;
@@ -583,7 +584,7 @@ body {
   transform: translate(-50%, -50%) scale(0.96);
   background: var(--blanco);
   border-radius: var(--radius);
-  box-shadow: 0 25px 60px rgba(43, 38, 37, 0.35);
+  box-shadow: 0 25px 60px rgba(67, 39, 32, 0.35);
   width: min(720px, calc(100vw - 40px));
   max-height: calc(100vh - 60px);
   overflow-y: auto;
@@ -612,13 +613,13 @@ body {
   line-height: 1;
   color: var(--frambuesa);
   cursor: pointer;
-  box-shadow: 0 2px 10px rgba(43, 38, 37, 0.15);
+  box-shadow: 0 2px 10px rgba(67, 39, 32, 0.15);
 }
 .modal-close:hover { color: var(--rosa); }
 
 .modal-image {
   height: 300px;
-  background: linear-gradient(150deg, #f7d6dd, #e8a9c0);
+  background: linear-gradient(150deg, var(--crema), var(--blossom));
   border-radius: var(--radius) var(--radius) 0 0;
 }
 .modal-image img { width: 100%; height: 100%; object-fit: cover; }
@@ -659,7 +660,7 @@ body {
   color: var(--negro);
   margin: 6px 0 0;
   padding-bottom: 8px;
-  border-bottom: 1px solid rgba(104, 20, 20, 0.12);
+  border-bottom: 1px solid rgba(101, 35, 43, 0.12);
 }
 
 .modal-ing {
@@ -700,7 +701,7 @@ body {
 
 .config-head {
   padding: 24px 28px 16px;
-  border-bottom: 1px solid rgba(104, 20, 20, 0.12);
+  border-bottom: 1px solid rgba(101, 35, 43, 0.12);
 }
 .config-head .modal-name { margin-top: 4px; }
 
@@ -779,7 +780,7 @@ body {
 .config-option:hover { border-color: var(--rosa); }
 .config-option.selected {
   border-color: var(--rosa);
-  background: #fdeef3;
+  background: rgba(236, 170, 178, 0.32);
   box-shadow: 0 0 0 1px var(--rosa);
 }
 .config-option .opt-name { display: block; font-size: 16px; font-weight: 600; color: var(--negro); }
@@ -788,7 +789,7 @@ body {
 .config-option .opt-price.gratis { color: var(--beige-hover); font-weight: 400; }
 
 .config-foot {
-  border-top: 1px solid rgba(104, 20, 20, 0.12);
+  border-top: 1px solid rgba(101, 35, 43, 0.12);
   padding: 18px 28px;
   display: flex;
   justify-content: space-between;
@@ -836,7 +837,7 @@ body {
   background: var(--blanco);
   border-radius: 12px;
   padding: 14px 16px;
-  box-shadow: 0 12px 32px rgba(43, 38, 37, 0.22);
+  box-shadow: 0 12px 32px rgba(67, 39, 32, 0.22);
   border: 1px solid var(--beige);
   font-size: 15px;
   line-height: 1.45;
@@ -914,7 +915,7 @@ body {
   .nav-menu .nav-link {
     font-size: 18px;
     padding: 16px 24px;
-    border-bottom: 1px solid rgba(104,20,20,0.08);
+    border-bottom: 1px solid rgba(101,35,43,0.08);
   }
   body { font-size: 17px; }
   .modal { width: calc(100vw - 24px); max-height: calc(100vh - 24px); }
