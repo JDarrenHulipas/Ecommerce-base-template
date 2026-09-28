@@ -652,6 +652,14 @@ const App = (() => {
     aplicar('#nosotros-texto', contenido.nosotros_texto);
     aplicar('#contacto-texto', contenido.contacto_texto);
     aplicar('#footer-texto', contenido.footer_texto);
+
+    // Imagen del hero: si no está configurada se mantiene el degradado CSS
+    const heroImg = document.querySelector('.hero-image');
+    if (heroImg && typeof contenido.hero_imagen === 'string' && contenido.hero_imagen) {
+      heroImg.style.backgroundImage = `url(${JSON.stringify(contenido.hero_imagen)})`;
+      heroImg.style.backgroundSize = 'cover';
+      heroImg.style.backgroundPosition = 'center';
+    }
   }
 
   async function cargarContenido() {

@@ -275,6 +275,32 @@ test('admin: PUT /contenido guarda y persiste los textos', async () => {
   assert.equal(rest.status, 200);
 });
 
+test('admin: PUT /contenido guarda y persiste la imagen de portada (hero_imagen)', async () => {
+  const url = `/api/imagenes/${Date.now()}-portada-test.webp`;
+
+  const { status } = await api('/api/admin/contenido', {
+    method: 'PUT',
+    auth: token,
+    body: { contenido: [{ clave: 'hero_imagen', valor: url }] },
+  });
+  assert.equal(status, 200);
+
+  const despues = await api('/api/admin/contenido', { auth: token });
+  assert.equal(despues.body.contenido.find((c) => c.clave === 'hero_imagen').valor, url);
+
+  // La tienda pública debe ver la imagen
+  const publico = await api('/api/contenido');
+  assert.equal(publico.body.contenido.hero_imagen, url);
+
+  // Restaura (valor vacío = la portada vuelve al degradado CSS)
+  const rest = await api('/api/admin/contenido', {
+    method: 'PUT',
+    auth: token,
+    body: { contenido: [{ clave: 'hero_imagen', valor: '' }] },
+  });
+  assert.equal(rest.status, 200);
+});
+
 test('admin: PUT /contenido valida los datos', async () => {
   const casos = [
     { contenido: [] },

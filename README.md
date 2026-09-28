@@ -96,7 +96,7 @@ bakerycloud/
 - [x] Configurador "Construye tu tarta" (tamaño, altura, bizcocho, relleno, decoración, extras) con precio en vivo y snapshot JSONB en el pedido
 - [x] Formulario de contacto real (guarda consultas por tienda) + toasts de aviso en toda la página
 - [x] Panel de administración (`/admin/`): login con JWT, selector de tienda, crear/editar/eliminar productos (imagen, stock, precio, disponibilidad, ingredientes) y pestañas de Pedidos (con cambio de estado) y Contactos
-- [x] Panel de administración: pestaña "Contenido de la portada" para editar anuncios, hero, nosotros, contacto y footer (por tienda)
+- [x] Panel de administración: pestaña "Contenido de la portada" para editar anuncios, hero (textos e imagen), nosotros, contacto y footer (por tienda)
 - [x] Subida de imágenes del admin con doble almacenamiento: disco local (desarrollo) o **S3** (producción), misma URL pública
 - [x] Suite de integración del backend (health, productos, pedidos, opciones, contactos, contenido, admin) + tests E2E de Playwright
 - [x] AWS `eu-south-2` con Terraform: VPC, EC2 (Docker), RDS PostgreSQL 16, S3 e IAM
@@ -261,7 +261,7 @@ tienda por defecto):
 
 | Ruta | Descripción |
 |---|---|
-| `/api/admin/contenido` | Guarda los textos de la portada `{ contenido: [{ clave, valor }] }` (requiere token) |
+| `/api/admin/contenido` | Guarda los textos y la imagen del hero (`hero_imagen`, URL de `/api/imagenes/...`) de la portada `{ contenido: [{ clave, valor }] }` (requiere token) |
 
 ### PATCH
 

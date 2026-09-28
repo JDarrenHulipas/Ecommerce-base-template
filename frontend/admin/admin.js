@@ -8,6 +8,7 @@ const AdminApp = (() => {
     { clave: 'hero_titulo', etiqueta: 'Hero — título (cada línea es un salto)', multilinea: true },
     { clave: 'hero_sub', etiqueta: 'Hero — subtítulo', multilinea: true },
     { clave: 'hero_cta', etiqueta: 'Hero — botón', multilinea: false },
+    { clave: 'hero_imagen', etiqueta: 'Hero — imagen', tipo: 'imagen' },
     { clave: 'nosotros_titulo', etiqueta: 'Nosotros — título', multilinea: false },
     { clave: 'nosotros_texto', etiqueta: 'Nosotros — texto', multilinea: true },
     { clave: 'contacto_texto', etiqueta: 'Contacto — texto', multilinea: true },
@@ -438,6 +439,23 @@ const AdminApp = (() => {
   function renderContenido() {
     contenidoCampos.innerHTML = CAMPOS_CONTENIDO.map((campo) => {
       const valor = escapeHtml(valoresContenido[campo.clave] ?? '');
+      if (campo.tipo === 'imagen') {
+        const url = valoresContenido[campo.clave] || '';
+        const preview = url
+          ? `<img src="${escapeHtml(url)}" alt="Imagen del hero">`
+          : '<span class="img-none">Sin imagen</span>';
+        return `
+          <div class="contenido-campo">
+            <span>${campo.etiqueta}</span>
+            <span class="img-cell">
+              <span class="img-preview" data-campo="${campo.clave}">${preview}</span>
+              <input type="file" data-campo="${campo.clave}" accept="image/jpeg,image/png,image/webp,image/gif" hidden>
+              <button type="button" class="img-btn" data-campo="${campo.clave}">Subir imagen</button>
+              <button type="button" class="img-clear" data-campo="${campo.clave}"${url ? '' : ' hidden'}>Quitar</button>
+            </span>
+            <input type="hidden" id="campo-${campo.clave}" value="${valor}">
+          </div>`;
+      }
       const control = campo.multilinea
         ? `<textarea id="campo-${campo.clave}" rows="3">${valor}</textarea>`
         : `<input type="text" id="campo-${campo.clave}" value="${valor}">`;
@@ -450,6 +468,34 @@ const AdminApp = (() => {
     setMsg(contenidoMsg, '', true);
   }
 
+  // Sube la imagen al servidor; la URL queda en el campo oculto y solo se
+  // persiste (y se borra la anterior) al guardar el formulario.
+  async function subirImagenContenido(clave, file) {
+    const btn = contenidoCampos.querySelector(`.img-btn[data-campo="${clave}"]`);
+    if (btn) { btn.disabled = true; btn.textContent = 'Subiendo…'; }
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await fetch('/api/admin/imagenes', {
+        method: 'POST',
+        headers: { 'X-Tenant-Slug': tenantSlug(), 'X-Requested-With': 'XMLHttpRequest' },
+        body: fd,
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || `Error ${res.status}`);
+      $(`#campo-${clave}`).value = data.url;
+      const cell = contenidoCampos.querySelector(`.img-preview[data-campo="${clave}"]`);
+      if (cell) cell.innerHTML = `<img src="${escapeHtml(data.url)}" alt="Imagen del hero">`;
+      const clear = contenidoCampos.querySelector(`.img-clear[data-campo="${clave}"]`);
+      if (clear) clear.hidden = false;
+      setMsg(contenidoMsg, 'Imagen seleccionada. Pulsa «Guardar contenido» para aplicarla.', true);
+    } catch (err) {
+      setMsg(contenidoMsg, `No se pudo subir la imagen: ${err.message}`);
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = 'Subir imagen'; }
+    }
+  }
+
   async function guardarContenido() {
     const contenido = CAMPOS_CONTENIDO.map((campo) => ({
       clave: campo.clave,
@@ -459,6 +505,18 @@ const AdminApp = (() => {
     btn.disabled = true;
     try {
       await request('/api/admin/contenido', { method: 'PUT', body: { contenido } });
+      // Imágenes sustituidas o quitadas: ya no hay referencia → borrar archivo
+      CAMPOS_CONTENIDO.filter((c) => c.tipo === 'imagen').forEach((c) => {
+        const nueva = $(`#campo-${c.clave}`).value;
+        const vieja = valoresContenido[c.clave] || '';
+        if (vieja && vieja !== nueva && vieja.startsWith('/api/imagenes/')) {
+          fetch(`/api/admin/imagenes/${vieja.replace('/api/imagenes/', '')}`, {
+            method: 'DELETE',
+            headers: { 'X-Tenant-Slug': tenantSlug(), 'X-Requested-With': 'XMLHttpRequest' },
+          }).catch(() => {});
+        }
+        valoresContenido[c.clave] = nueva;
+      });
       setMsg(contenidoMsg, 'Contenido de la portada guardado.', true);
     } catch (err) {
       setMsg(contenidoMsg, `No se pudo guardar: ${err.message}`);
@@ -524,6 +582,33 @@ const AdminApp = (() => {
     $('#contenido-form').addEventListener('submit', (e) => {
       e.preventDefault();
       guardarContenido();
+    });
+
+    // Subir/quitar la imagen del contenido (delegación: el panel se re-renderiza)
+    contenidoCampos.addEventListener('click', (e) => {
+      const subir = e.target.closest('.img-btn');
+      if (subir && subir.dataset.campo) {
+        const file = contenidoCampos.querySelector(`input[type="file"][data-campo="${subir.dataset.campo}"]`);
+        if (file) file.click();
+        return;
+      }
+      const quitar = e.target.closest('.img-clear');
+      if (quitar && quitar.dataset.campo) {
+        const clave = quitar.dataset.campo;
+        $(`#campo-${clave}`).value = '';
+        const cell = contenidoCampos.querySelector(`.img-preview[data-campo="${clave}"]`);
+        if (cell) cell.innerHTML = '<span class="img-none">Sin imagen</span>';
+        quitar.hidden = true;
+        setMsg(contenidoMsg, 'Imagen quitada. Pulsa «Guardar contenido» para aplicarla.', true);
+      }
+    });
+    contenidoCampos.addEventListener('change', (e) => {
+      const input = e.target;
+      if (input.matches('input[type="file"][data-campo]')) {
+        const file = input.files[0];
+        input.value = '';
+        if (file) subirImagenContenido(input.dataset.campo, file);
+      }
     });
 
     $('#producto-form').addEventListener('submit', (e) => {

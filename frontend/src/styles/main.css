@@ -26,7 +26,7 @@ html { scroll-behavior: smooth; }
 
 body {
   font-family: var(--font-body);
-  background: var(--crema);
+  background: #fffaf6;
   color: var(--negro);
   font-size: 18px;
   line-height: 1.6;
