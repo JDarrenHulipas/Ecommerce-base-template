@@ -5,7 +5,11 @@
    ============================================================ */
 
 :root {
-  --crema:        #f5eee8;
+  --ivory:        #f8e5d7;
+  --blossom:      #ecaab2;
+  --blossom-hover:#e29aa4;
+  --truffle:      #432720;
+  --crema:        #f8e5d7;
   --beige:        #d9b8ac;
   --beige-hover:  #c9a294;
   --frambuesa:    #8a4a5e;
@@ -26,7 +30,7 @@ html { scroll-behavior: smooth; }
 
 body {
   font-family: var(--font-body);
-  background: #fffaf6;
+  background: var(--ivory);
   color: var(--negro);
   font-size: 18px;
   line-height: 1.6;
@@ -47,7 +51,7 @@ body {
   position: sticky;
   top: 0;
   z-index: 50;
-  background: rgba(245, 238, 232, 0.92);
+  background: rgba(248, 229, 215, 0.92);
   backdrop-filter: blur(8px);
   border-bottom: 1px solid rgba(104, 20, 20, 0.12);
   transition: transform 0.3s ease;
@@ -162,9 +166,10 @@ body {
   grid-template-columns: 1fr 1fr;
   gap: 40px;
   align-items: center;
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 64px 24px;
+  width: 100%;
+  margin: 0;
+  padding: 64px max(24px, calc((100% - 1152px) / 2));
+  background: linear-gradient(180deg, #fdf6ee 0%, #f9e8dc 100%);
 }
 
 .hero-eyebrow,
@@ -215,10 +220,10 @@ body {
   transition: all 0.2s;
 }
 .btn-primary {
-  background: var(--rosa);
-  color: var(--blanco);
+  background: var(--blossom);
+  color: var(--truffle);
 }
-.btn-primary:hover { background: #a63d63; transform: translateY(-2px); }
+.btn-primary:hover { background: var(--blossom-hover); transform: translateY(-2px); }
 .btn:disabled {
   opacity: 0.4;
   cursor: not-allowed;
@@ -384,8 +389,8 @@ body {
 .card-price { font-size: 20px; font-weight: 600; color: var(--rosa); }
 
 .btn-add {
-  background: var(--frambuesa);
-  color: var(--blanco);
+  background: var(--blossom);
+  color: var(--truffle);
   border: none;
   border-radius: 999px;
   padding: 8px 18px;
@@ -394,9 +399,9 @@ body {
   cursor: pointer;
   transition: all 0.2s;
 }
-.btn-add:hover { background: var(--rosa); }
+.btn-add:hover { background: var(--blossom-hover); }
 .btn-add:disabled,
-.btn-add:disabled:hover { background: var(--frambuesa); opacity: 0.8; }
+.btn-add:disabled:hover { background: var(--beige); color: var(--blanco); opacity: 0.8; }
 
 .card-soldout { opacity: 0.55; transition: none; }
 .card-soldout:hover { transform: none; box-shadow: var(--shadow); }
@@ -426,8 +431,8 @@ body {
 
 /* ---------- Footer ---------- */
 .footer {
-  background: var(--negro);
-  color: #b9b2a6;
+  background: var(--truffle);
+  color: #ddccc0;
   text-align: center;
   padding: 28px 24px;
   font-size: 15px;
