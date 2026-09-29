@@ -175,17 +175,19 @@ body {
 
 .hero-eyebrow,
 .section-eyebrow {
-  display: inline-block;
   text-transform: uppercase;
   letter-spacing: 0.18em;
   font-size: 12px;
   font-weight: 600;
   color: var(--cherry);
+  margin-bottom: 18px;
+}
+.hero-eyebrow {
+  display: inline-block;
   background: rgba(236, 170, 178, 0.35);
   border: 1px solid rgba(236, 170, 178, 0.85);
   border-radius: 999px;
   padding: 6px 16px;
-  margin-bottom: 18px;
 }
 
 .hero h1 {
